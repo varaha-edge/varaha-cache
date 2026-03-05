@@ -1,7 +1,7 @@
 version: "1"
 
 # varaha-cache CI/CD pipeline
-# Vela v0.24.0 CI pipeline
+# varaha-cache Vela CI pipeline
 
 metadata:
   template: false
