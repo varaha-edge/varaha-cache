@@ -1,6 +1,6 @@
 version: "1"
 
-# varaha-cache CI pipeline
+# varaha-cache CI/CD pipeline
 
 metadata:
   template: false
