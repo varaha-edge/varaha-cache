@@ -5,59 +5,44 @@ version: "1"
 metadata:
   template: false
 
-worker:
-  flavor: large
-  platform: linux/amd64
+steps:
+  - name: fmt
+    image: rust:1.87-slim
+    pull: always
+    commands:
+      - rustup component add rustfmt
+      - cargo fmt --all -- --check
 
-stages:
-  check:
-    steps:
-      - name: fmt
-        image: rust:1.87-slim
-        pull: always
-        commands:
-          - rustup component add rustfmt
-          - cargo fmt --all -- --check
+  - name: clippy
+    image: rust:1.87-slim
+    pull: always
+    commands:
+      - rustup component add clippy
+      - cargo clippy --workspace --all-targets -- -D warnings
 
-      - name: clippy
-        image: rust:1.87-slim
-        pull: always
-        commands:
-          - rustup component add clippy
-          - cargo clippy --workspace --all-targets -- -D warnings
+  - name: test
+    image: rust:1.87-slim
+    pull: always
+    commands:
+      - cargo test --workspace
 
-  test:
-    needs: [check]
-    steps:
-      - name: unit-tests
-        image: rust:1.87-slim
-        pull: always
-        commands:
-          - cargo test --workspace
+  - name: build
+    image: rust:1.87-slim
+    pull: always
+    commands:
+      - cargo build --workspace --release
 
-  build:
-    needs: [test]
-    steps:
-      - name: compile
-        image: rust:1.87-slim
-        pull: always
-        commands:
-          - cargo build --workspace --release
-
-  publish:
-    needs: [build]
-    steps:
-      - name: docker-build-push
-        image: target/vela-kaniko:latest
-        pull: always
-        ruleset:
-          branch: [main]
-          event: [push]
-        parameters:
-          registry: registry.intra.varaha.io
-          repo: registry.intra.varaha.io/varaha/varaha-cache
-          tags:
-            - latest
-            - "build-${VELA_BUILD_NUMBER}"
-          build_args:
-            - "RUST_VERSION=1.87"
+  - name: docker-build-push
+    image: target/vela-kaniko:latest
+    pull: always
+    ruleset:
+      branch: [main]
+      event: [push]
+    parameters:
+      registry: registry.intra.varaha.io
+      repo: registry.intra.varaha.io/varaha/varaha-cache
+      tags:
+        - latest
+        - "build-${VELA_BUILD_NUMBER}"
+      build_args:
+        - "RUST_VERSION=1.87"
