@@ -1,0 +1,10 @@
+[package]
+name = "rv-types"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Shared type definitions, enums, and constants for varaha-cache"
+
+[dependencies]
+serde = { workspace = true }
+thiserror = { workspace = true }

@@ -1,0 +1,17 @@
+[package]
+name = "rv-config"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Multi-format configuration (TOML/JSON/YAML) with unified CacheConfig"
+
+[dependencies]
+rv-types = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }
+serde_yaml = { workspace = true }
+thiserror = { workspace = true }
+notify = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }

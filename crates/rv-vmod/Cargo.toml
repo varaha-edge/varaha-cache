@@ -1,0 +1,19 @@
+[package]
+name = "rv-vmod"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Built-in VMOD implementations (std, blob, cookie, purge, etc.)"
+
+[dependencies]
+rv-types = { workspace = true }
+rv-http = { workspace = true }
+rv-vcl = { workspace = true }
+rv-cache = { workspace = true }
+rv-backend = { workspace = true }
+base64 = { workspace = true }
+regex = { workspace = true }
+url = { workspace = true }
+thiserror = { workspace = true }
+dashmap = { workspace = true }
+tracing = { workspace = true }

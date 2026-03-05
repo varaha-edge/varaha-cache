@@ -1,0 +1,12 @@
+[package]
+name = "rv-http"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "HTTP parsing, header manipulation, and RFC2616 compliance"
+
+[dependencies]
+rv-types = { workspace = true }
+bytes = { workspace = true }
+thiserror = { workspace = true }
+regex = { workspace = true }

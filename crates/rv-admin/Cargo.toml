@@ -1,0 +1,23 @@
+[package]
+name = "rv-admin"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Management CLI and admin interface"
+
+[dependencies]
+rv-types = { workspace = true }
+rv-config = { workspace = true }
+rv-vcl = { workspace = true }
+rv-cache = { workspace = true }
+rv-log = { workspace = true }
+tokio = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+sha2 = { workspace = true }
+getrandom = { workspace = true }
+arc-swap = { workspace = true }
+
+[dev-dependencies]
+rv-hash = { workspace = true }
+rv-storage = { workspace = true }

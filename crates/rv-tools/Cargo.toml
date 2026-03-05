@@ -1,0 +1,28 @@
+[package]
+name = "rv-tools"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Utility binaries: log viewer, stats, admin client"
+
+[[bin]]
+name = "rv-admin-cli"
+path = "src/admin_cli.rs"
+
+[[bin]]
+name = "rv-log-viewer"
+path = "src/log_viewer.rs"
+
+[[bin]]
+name = "rv-stat"
+path = "src/stat.rs"
+
+[dependencies]
+rv-types = { workspace = true }
+rv-log = { workspace = true }
+rv-admin = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }

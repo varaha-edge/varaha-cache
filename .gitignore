@@ -1,0 +1,28 @@
+# Rust build artifacts
+/target/
+**/*.rs.bk
+
+# Cargo lock (optional for libraries, keep for binaries)
+# Cargo.lock
+
+# Environment and secrets
+.env
+.env.*
+*.pem
+*.key
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+
+# Documentation
+/docs/
+
+# Claude artifacts
+.claude/

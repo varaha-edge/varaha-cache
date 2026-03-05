@@ -1,0 +1,15 @@
+[package]
+name = "rv-backend"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Backend connections, health probes, and directors"
+
+[dependencies]
+rv-types = { workspace = true }
+rv-http = { workspace = true }
+tokio = { workspace = true }
+hyper = { workspace = true }
+parking_lot = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }

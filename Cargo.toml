@@ -1,0 +1,101 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/rv-types",
+    "crates/rv-http",
+    "crates/rv-vcl",
+    "crates/rv-config",
+    "crates/rv-hash",
+    "crates/rv-storage",
+    "crates/rv-cache",
+    "crates/rv-backend",
+    "crates/rv-transport",
+    "crates/rv-filter",
+    "crates/rv-vmod",
+    "crates/rv-admin",
+    "crates/rv-log",
+    "crates/rv-server",
+    "crates/rv-tools",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "BSD-2-Clause"
+repository = "https://github.com/varaha/varaha-cache"
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+axum = "0.8"
+hyper = "1"
+h2 = "0.4"
+http = "1"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+serde_yaml = "0.9"
+
+# Crypto
+sha2 = "0.10"
+getrandom = "0.2"
+
+# Regex
+regex = "1"
+
+# Logging/tracing
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# Concurrency
+parking_lot = "0.12"
+dashmap = "6"
+crossbeam = "0.8"
+arc-swap = "1"
+tokio-util = "0.7"
+
+# Memory/IO
+memmap2 = "0.9"
+flate2 = "1"
+bytes = "1"
+
+# File watching
+notify = "7"
+
+# Encoding
+base64 = "0.22"
+
+# URL
+url = "2"
+
+# Error handling
+thiserror = "2"
+anyhow = "1"
+
+# TLS
+rustls = "0.23"
+tokio-rustls = "0.26"
+rustls-pemfile = "2"
+ring = "0.17"
+
+# Benchmarks
+criterion = "0.5"
+
+# Internal crates
+rv-types = { path = "crates/rv-types" }
+rv-http = { path = "crates/rv-http" }
+rv-vcl = { path = "crates/rv-vcl" }
+rv-config = { path = "crates/rv-config" }
+rv-hash = { path = "crates/rv-hash" }
+rv-storage = { path = "crates/rv-storage" }
+rv-cache = { path = "crates/rv-cache" }
+rv-backend = { path = "crates/rv-backend" }
+rv-transport = { path = "crates/rv-transport" }
+rv-filter = { path = "crates/rv-filter" }
+rv-vmod = { path = "crates/rv-vmod" }
+rv-admin = { path = "crates/rv-admin" }
+rv-log = { path = "crates/rv-log" }
+rv-server = { path = "crates/rv-server" }
+rv-tools = { path = "crates/rv-tools" }

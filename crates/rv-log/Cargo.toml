@@ -1,0 +1,12 @@
+[package]
+name = "rv-log"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Structured ring-buffer based logging"
+
+[dependencies]
+rv-types = { workspace = true }
+parking_lot = { workspace = true }
+crossbeam = { workspace = true }
+tracing = { workspace = true }

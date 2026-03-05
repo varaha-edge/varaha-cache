@@ -1,0 +1,32 @@
+[package]
+name = "rv-server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Main varaha-cache binary"
+
+[[bin]]
+name = "varaha-cache"
+path = "src/main.rs"
+
+[dependencies]
+rv-types = { workspace = true }
+rv-http = { workspace = true }
+rv-config = { workspace = true }
+rv-hash = { workspace = true }
+rv-storage = { workspace = true }
+rv-backend = { workspace = true }
+rv-filter = { workspace = true }
+rv-cache = { workspace = true }
+rv-transport = { workspace = true }
+rv-admin = { workspace = true }
+rv-vmod = { workspace = true }
+rv-log = { workspace = true }
+rv-vcl = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }
+sha2 = { workspace = true }
+arc-swap = { workspace = true }
+tokio-util = { workspace = true }
