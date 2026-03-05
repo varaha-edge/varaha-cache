@@ -47,9 +47,7 @@ fn parse_v1(buf: &[u8]) -> Result<Option<(ProxyHeader, usize)>, TransportError> 
     let line_end = buf
         .windows(2)
         .position(|w| w == b"\r\n")
-        .ok_or_else(|| {
-            TransportError::ProxyProtocol("incomplete PROXY v1 header".to_string())
-        })?;
+        .ok_or_else(|| TransportError::ProxyProtocol("incomplete PROXY v1 header".to_string()))?;
 
     let line = std::str::from_utf8(&buf[..line_end])
         .map_err(|e| TransportError::ProxyProtocol(format!("invalid UTF-8: {e}")))?;
@@ -213,10 +211,7 @@ mod tests {
         let result = parse_proxy_header(data).unwrap().unwrap();
         let (header, consumed) = result;
         assert_eq!(header.version, ProxyVersion::V1);
-        assert_eq!(
-            header.src_addr,
-            "192.168.1.1:56324".parse().unwrap()
-        );
+        assert_eq!(header.src_addr, "192.168.1.1:56324".parse().unwrap());
         assert_eq!(header.dst_addr, "10.0.0.1:443".parse().unwrap());
         assert_eq!(consumed, data.len());
     }

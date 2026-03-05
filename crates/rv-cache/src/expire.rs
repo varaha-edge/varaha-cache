@@ -1,5 +1,5 @@
-use std::collections::BinaryHeap;
 use std::cmp::Ordering;
+use std::collections::BinaryHeap;
 use std::sync::Arc;
 
 use parking_lot::Mutex;
@@ -55,10 +55,7 @@ impl ExpiryManager {
     pub fn insert(&self, oc: Arc<ObjCore>) {
         let when = oc.t_origin + oc.ttl + oc.grace + oc.keep;
         let mut heap = self.heap.lock();
-        heap.push(ExpiryEntry {
-            when,
-            objcore: oc,
-        });
+        heap.push(ExpiryEntry { when, objcore: oc });
     }
 
     /// Insert with an explicit deadline.

@@ -16,12 +16,8 @@ use crate::error::TransportError;
 fn is_keep_alive(response: &HttpMessage) -> bool {
     let conn_header = response.get_header("Connection").unwrap_or_default();
     match response.protocol {
-        HttpVersion::Http11 => {
-            !conn_header.eq_ignore_ascii_case("close")
-        }
-        _ => {
-            conn_header.eq_ignore_ascii_case("keep-alive")
-        }
+        HttpVersion::Http11 => !conn_header.eq_ignore_ascii_case("close"),
+        _ => conn_header.eq_ignore_ascii_case("keep-alive"),
     }
 }
 
@@ -48,11 +44,7 @@ pub async fn send_backend_request(
 
     let mut stream = match stream {
         Some(s) => s,
-        None => {
-            TcpStream::connect(addr)
-                .await
-                .map_err(TransportError::Io)?
-        }
+        None => TcpStream::connect(addr).await.map_err(TransportError::Io)?,
     };
 
     // Write request line
@@ -94,10 +86,7 @@ pub async fn send_backend_request(
             .write_all(b"\r\n")
             .await
             .map_err(TransportError::Io)?;
-        stream
-            .write_all(body)
-            .await
-            .map_err(TransportError::Io)?;
+        stream.write_all(body).await.map_err(TransportError::Io)?;
     } else {
         stream
             .write_all(b"\r\n")
@@ -221,11 +210,7 @@ pub async fn send_backend_request(
                     .map_err(TransportError::Io)?;
             }
             body_length_known = true;
-            if body.is_empty() {
-                None
-            } else {
-                Some(body)
-            }
+            if body.is_empty() { None } else { Some(body) }
         } else {
             // Read until connection close -- stream is consumed
             let mut body = Vec::new();
@@ -233,11 +218,7 @@ pub async fn send_backend_request(
                 .read_to_end(&mut body)
                 .await
                 .map_err(TransportError::Io)?;
-            if body.is_empty() {
-                None
-            } else {
-                Some(body)
-            }
+            if body.is_empty() { None } else { Some(body) }
         }
     } else {
         body_length_known = true;

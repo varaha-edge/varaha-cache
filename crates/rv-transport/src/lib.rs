@@ -8,7 +8,7 @@ pub mod tls;
 pub mod traits;
 
 pub use error::TransportError;
-pub use proxy_proto::{parse_proxy_header, ProxyHeader, ProxyVersion};
+pub use proxy_proto::{ProxyHeader, ProxyVersion, parse_proxy_header};
 pub use server::{RequestHandler, TransportConfig, TransportServer};
 pub use tls::{TlsConfig, build_tls_acceptor};
 pub use traits::{ClientTransport, ConnectionInfo, DetectedVersion, IncomingRequest, Responder};

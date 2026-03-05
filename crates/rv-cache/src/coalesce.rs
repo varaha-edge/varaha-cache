@@ -63,9 +63,7 @@ impl CoalesceManager {
 
         // Slow path: try to insert. Use the entry API to avoid TOCTOU races.
         match self.inflight.entry(*digest) {
-            dashmap::Entry::Occupied(entry) => {
-                CoalesceDecision::Wait(entry.get().subscribe())
-            }
+            dashmap::Entry::Occupied(entry) => CoalesceDecision::Wait(entry.get().subscribe()),
             dashmap::Entry::Vacant(entry) => {
                 let (tx, _rx) = broadcast::channel(CHANNEL_CAPACITY);
                 entry.insert(tx);

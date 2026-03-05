@@ -180,8 +180,10 @@ impl PersistentStevedore {
                 // This was a previously freed slab; record it as free.
                 let mut digest_bytes = [0u8; 32];
                 digest_bytes.copy_from_slice(&entry_bytes[0..32]);
-                let data_offset = u64::from_le_bytes(entry_bytes[32..40].try_into().unwrap()) as usize;
-                let slab_size = u64::from_le_bytes(entry_bytes[40..48].try_into().unwrap()) as usize;
+                let data_offset =
+                    u64::from_le_bytes(entry_bytes[32..40].try_into().unwrap()) as usize;
+                let slab_size =
+                    u64::from_le_bytes(entry_bytes[40..48].try_into().unwrap()) as usize;
 
                 allocs.push(SlabEntry {
                     index: i,
@@ -423,11 +425,7 @@ impl PersistentStevedore {
         }
 
         // Remove free slabs from the allocations list and rebuild digest index.
-        let active: Vec<SlabEntry> = allocs
-            .iter()
-            .filter(|s| s.in_use)
-            .cloned()
-            .collect();
+        let active: Vec<SlabEntry> = allocs.iter().filter(|s| s.in_use).cloned().collect();
 
         digest_idx.clear();
         for (new_idx, slab) in active.iter().enumerate() {
@@ -599,9 +597,7 @@ impl Stevedore for PersistentStevedore {
         })?;
 
         let mut allocs = self.allocations.lock();
-        let slab = allocs
-            .get_mut(slab_idx)
-            .ok_or(StorageError::NotFound)?;
+        let slab = allocs.get_mut(slab_idx).ok_or(StorageError::NotFound)?;
 
         let write_offset = slab.offset + slab.body_len;
         let write_end = write_offset + data.len();
@@ -632,12 +628,7 @@ impl Stevedore for PersistentStevedore {
         slab.attrs.get(&attr).cloned()
     }
 
-    fn set_attr(
-        &self,
-        oc: &mut ObjCore,
-        attr: ObjAttr,
-        data: &[u8],
-    ) -> Result<(), StorageError> {
+    fn set_attr(&self, oc: &mut ObjCore, attr: ObjAttr, data: &[u8]) -> Result<(), StorageError> {
         let slab_idx = *self
             .digest_index
             .lock()
@@ -645,9 +636,7 @@ impl Stevedore for PersistentStevedore {
             .ok_or(StorageError::NotFound)?;
 
         let mut allocs = self.allocations.lock();
-        let slab = allocs
-            .get_mut(slab_idx)
-            .ok_or(StorageError::NotFound)?;
+        let slab = allocs.get_mut(slab_idx).ok_or(StorageError::NotFound)?;
         slab.attrs.insert(attr, data.to_vec());
         Ok(())
     }

@@ -287,9 +287,7 @@ mod tests {
     #[test]
     fn test_integer_parse() {
         let f = StdInteger;
-        let result = f
-            .call(&[VclValue::String("42".to_string())])
-            .unwrap();
+        let result = f.call(&[VclValue::String("42".to_string())]).unwrap();
         assert_eq!(result.to_int(), 42);
 
         // With fallback
@@ -309,17 +307,12 @@ mod tests {
     #[test]
     fn test_real_parse() {
         let f = StdReal;
-        let result = f
-            .call(&[VclValue::String("3.14".to_string())])
-            .unwrap();
+        let result = f.call(&[VclValue::String("3.14".to_string())]).unwrap();
         assert_eq!(result.to_real(), 3.14);
 
         // Fallback
         let result = f
-            .call(&[
-                VclValue::String("bad".to_string()),
-                VclValue::Real(0.0),
-            ])
+            .call(&[VclValue::String("bad".to_string()), VclValue::Real(0.0)])
             .unwrap();
         assert_eq!(result.to_real(), 0.0);
     }
@@ -327,9 +320,7 @@ mod tests {
     #[test]
     fn test_duration_parse() {
         let f = StdDuration;
-        let result = f
-            .call(&[VclValue::String("5s".to_string())])
-            .unwrap();
+        let result = f.call(&[VclValue::String("5s".to_string())]).unwrap();
         if let VclValue::Duration(d) = result {
             assert_eq!(d, 5.0);
         } else {
@@ -390,22 +381,16 @@ mod tests {
         assert_eq!(result.to_string_value(), "/path?a=1&b=2&c=3");
 
         // No query string
-        let result = f
-            .call(&[VclValue::String("/path".to_string())])
-            .unwrap();
+        let result = f.call(&[VclValue::String("/path".to_string())]).unwrap();
         assert_eq!(result.to_string_value(), "/path");
 
         // Empty query string
-        let result = f
-            .call(&[VclValue::String("/path?".to_string())])
-            .unwrap();
+        let result = f.call(&[VclValue::String("/path?".to_string())]).unwrap();
         assert_eq!(result.to_string_value(), "/path?");
 
         // Preserve fragment
         let result = f
-            .call(&[VclValue::String(
-                "/path?z=1&a=2#section".to_string(),
-            )])
+            .call(&[VclValue::String("/path?z=1&a=2#section".to_string())])
             .unwrap();
         assert_eq!(result.to_string_value(), "/path?a=2&z=1#section");
     }
@@ -422,9 +407,7 @@ mod tests {
     #[test]
     fn test_random_range() {
         let f = StdRandom;
-        let result = f
-            .call(&[VclValue::Real(0.0), VclValue::Real(1.0)])
-            .unwrap();
+        let result = f.call(&[VclValue::Real(0.0), VclValue::Real(1.0)]).unwrap();
         let val = result.to_real();
         assert!(val >= 0.0 && val < 1.0, "random value {val} out of range");
     }
@@ -440,9 +423,7 @@ mod tests {
     fn test_round_wrong_args() {
         let f = StdRound;
         assert!(f.call(&[]).is_err());
-        assert!(f
-            .call(&[VclValue::Real(1.0), VclValue::Real(2.0)])
-            .is_err());
+        assert!(f.call(&[VclValue::Real(1.0), VclValue::Real(2.0)]).is_err());
     }
 
     #[test]

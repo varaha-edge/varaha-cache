@@ -186,11 +186,7 @@ impl Stevedore for FileStevedore {
         // so no other thread can be writing to this range. The bump allocator
         // guarantees non-overlapping regions.
         unsafe {
-            std::ptr::copy_nonoverlapping(
-                oc.digest.bytes.as_ptr(),
-                base.add(offset),
-                32,
-            );
+            std::ptr::copy_nonoverlapping(oc.digest.bytes.as_ptr(), base.add(offset), 32);
         }
 
         let slot = FileSlot {
@@ -262,16 +258,9 @@ impl Stevedore for FileStevedore {
         slot.attrs.get(&attr).cloned()
     }
 
-    fn set_attr(
-        &self,
-        oc: &mut ObjCore,
-        attr: ObjAttr,
-        data: &[u8],
-    ) -> Result<(), StorageError> {
+    fn set_attr(&self, oc: &mut ObjCore, attr: ObjAttr, data: &[u8]) -> Result<(), StorageError> {
         let mut index = self.index.lock();
-        let slot = index
-            .get_mut(&oc.digest)
-            .ok_or(StorageError::NotFound)?;
+        let slot = index.get_mut(&oc.digest).ok_or(StorageError::NotFound)?;
         slot.attrs.insert(attr, data.to_vec());
         Ok(())
     }

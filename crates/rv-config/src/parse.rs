@@ -65,9 +65,9 @@ pub fn parse_duration(input: &str) -> Result<Duration, ParseError> {
         return Err(ParseError::UnknownDurationSuffix(s.to_string()));
     };
 
-    let value: f64 = num_part
-        .parse()
-        .map_err(|e: std::num::ParseFloatError| ParseError::InvalidNumber(s.to_string(), e.to_string()))?;
+    let value: f64 = num_part.parse().map_err(|e: std::num::ParseFloatError| {
+        ParseError::InvalidNumber(s.to_string(), e.to_string())
+    })?;
 
     Ok(Duration::from_secs_f64(value * multiplier))
 }
@@ -126,9 +126,9 @@ pub fn parse_size(input: &str) -> Result<usize, ParseError> {
         (lower.as_str(), 1)
     };
 
-    let value: f64 = num_part
-        .parse()
-        .map_err(|e: std::num::ParseFloatError| ParseError::InvalidNumber(s.to_string(), e.to_string()))?;
+    let value: f64 = num_part.parse().map_err(|e: std::num::ParseFloatError| {
+        ParseError::InvalidNumber(s.to_string(), e.to_string())
+    })?;
 
     let bytes = value * (multiplier as f64);
     if bytes < 0.0 || bytes > (usize::MAX as f64) {
@@ -153,7 +153,10 @@ mod tests {
 
     #[test]
     fn duration_fractional_seconds() {
-        assert_eq!(parse_duration("3.5s").unwrap(), Duration::from_secs_f64(3.5));
+        assert_eq!(
+            parse_duration("3.5s").unwrap(),
+            Duration::from_secs_f64(3.5)
+        );
     }
 
     #[test]

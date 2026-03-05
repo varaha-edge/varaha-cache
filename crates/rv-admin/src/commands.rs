@@ -111,9 +111,9 @@ pub fn parse_command(line: &str) -> Result<CliCommand, AdminError> {
             Ok(CliCommand::VclLoad { name, source })
         }
         "vcl.use" => {
-            let name = tokens.next().ok_or_else(|| {
-                AdminError::InvalidCommand("vcl.use requires <name>".to_string())
-            })?;
+            let name = tokens
+                .next()
+                .ok_or_else(|| AdminError::InvalidCommand("vcl.use requires <name>".to_string()))?;
             Ok(CliCommand::VclUse { name })
         }
         "vcl.list" => Ok(CliCommand::VclList),

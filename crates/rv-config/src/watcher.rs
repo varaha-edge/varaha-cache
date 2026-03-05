@@ -37,7 +37,9 @@ pub struct ConfigWatcher {
 impl ConfigWatcher {
     /// Creates a new ConfigWatcher that monitors the given config file.
     /// Returns the watcher and a receiver for config events.
-    pub fn new(config_path: impl AsRef<Path>) -> Result<(Self, broadcast::Receiver<ConfigEvent>), ConfigWatcherError> {
+    pub fn new(
+        config_path: impl AsRef<Path>,
+    ) -> Result<(Self, broadcast::Receiver<ConfigEvent>), ConfigWatcherError> {
         let config_path = config_path.as_ref().to_path_buf();
         let (tx, rx) = broadcast::channel(16);
 

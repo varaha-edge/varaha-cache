@@ -10,9 +10,9 @@ pub use traits::{DeliveryProcessor, FetchProcessor, FilterError, VdpAction, VfpS
 
 use std::io::{Read, Write};
 
+use flate2::Compression;
 use flate2::read::GzDecoder;
 use flate2::write::GzEncoder;
-use flate2::Compression;
 
 /// Compress data with gzip using default compression level (6).
 ///

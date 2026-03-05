@@ -40,7 +40,11 @@ pub struct IncomingRequest {
 /// Trait for sending a response back to the client.
 pub trait Responder: Send {
     /// Send an HTTP response.
-    fn send_response(&mut self, response: HttpMessage, body: Option<Vec<u8>>) -> Result<(), TransportError>;
+    fn send_response(
+        &mut self,
+        response: HttpMessage,
+        body: Option<Vec<u8>>,
+    ) -> Result<(), TransportError>;
 }
 
 /// Trait for sending an HTTP request to a backend.

@@ -75,7 +75,11 @@ impl HashSlinger for ClassicHash {
         // No additional initialization needed.
     }
 
-    fn lookup(&self, digest: &Digest, new_oh: Arc<ObjHead>) -> (Arc<ObjHead>, Option<Arc<ObjHead>>) {
+    fn lookup(
+        &self,
+        digest: &Digest,
+        new_oh: Arc<ObjHead>,
+    ) -> (Arc<ObjHead>, Option<Arc<ObjHead>>) {
         let idx = self.bucket_index(digest);
         let mut bucket = self.buckets[idx].lock();
 
@@ -133,7 +137,10 @@ mod tests {
         let d1 = make_digest(1);
         let oh1 = Arc::new(ObjHead::new(d1));
         let (found, unused) = hash.lookup(&d1, oh1);
-        assert!(unused.is_none(), "new_oh should be consumed on first insert");
+        assert!(
+            unused.is_none(),
+            "new_oh should be consumed on first insert"
+        );
         assert_eq!(found.ref_count(), 1);
         assert_eq!(found.digest, d1);
     }
@@ -240,7 +247,10 @@ mod tests {
             assert!(Arc::ptr_eq(first, oh));
         }
 
-        let insert_count = results.iter().filter(|(_, unused)| unused.is_none()).count();
+        let insert_count = results
+            .iter()
+            .filter(|(_, unused)| unused.is_none())
+            .count();
         assert_eq!(insert_count, 1);
 
         assert_eq!(first.ref_count(), 8);

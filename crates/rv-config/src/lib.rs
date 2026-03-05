@@ -17,6 +17,6 @@ pub use config::{
     ListenConfig, LogConfig, ProbeConfig, StorageConfig, ThreadPoolConfig, TimeoutConfig,
     TtlConfig, VclConfig,
 };
-pub use loader::{load_config, load_from_str, ConfigFormat, LoadError};
-pub use parse::{parse_duration, parse_size, ParseError};
+pub use loader::{ConfigFormat, LoadError, load_config, load_from_str};
+pub use parse::{ParseError, parse_duration, parse_size};
 pub use watcher::{ConfigEvent, ConfigWatcher, ConfigWatcherError};

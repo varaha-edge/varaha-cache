@@ -35,7 +35,8 @@ pub trait HashSlinger: Send + Sync {
     /// The Option will be None in this case, indicating the new ObjHead was consumed.
     ///
     /// The returned ObjHead will have its refcount incremented.
-    fn lookup(&self, digest: &Digest, new_oh: Arc<ObjHead>) -> (Arc<ObjHead>, Option<Arc<ObjHead>>);
+    fn lookup(&self, digest: &Digest, new_oh: Arc<ObjHead>)
+    -> (Arc<ObjHead>, Option<Arc<ObjHead>>);
 
     /// Dereference an ObjHead, decrementing its refcount.
     ///

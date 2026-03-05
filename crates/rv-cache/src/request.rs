@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use rv_types::{Digest, HttpStatus, VtimReal};
 use rv_types::vsl::Vxid;
+use rv_types::{Digest, HttpStatus, VtimReal};
 
 use rv_http::message::HttpMessage;
 use rv_storage::ObjCore;

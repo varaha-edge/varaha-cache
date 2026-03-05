@@ -15,17 +15,17 @@
 //! - **error** - Error types for the admin subsystem.
 
 pub mod auth;
-pub mod error;
-pub mod protocol;
 pub mod commands;
+pub mod error;
 pub mod handler;
+pub mod protocol;
 pub mod server;
 pub mod vcl_manager;
 
-pub use error::AdminError;
-pub use protocol::{CliStatus, CliResponse, encode_response, decode_response};
+pub use auth::{compute_auth_response, generate_challenge, verify_auth};
 pub use commands::{CliCommand, parse_command};
+pub use error::AdminError;
 pub use handler::{AdminContext, handle_command};
+pub use protocol::{CliResponse, CliStatus, decode_response, encode_response};
 pub use server::AdminServer;
 pub use vcl_manager::VclManager;
-pub use auth::{generate_challenge, compute_auth_response, verify_auth};

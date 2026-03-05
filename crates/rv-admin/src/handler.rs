@@ -49,11 +49,7 @@ impl AdminContext {
     /// The `vcl_manager` and `running` flag are optional for backward
     /// compatibility. When not supplied, sensible defaults are used: an empty
     /// VCL manager and a running flag initialised to `true`.
-    pub fn new(
-        cache: Arc<CacheEngine>,
-        log: Arc<LogWriter>,
-        config: Arc<CacheConfig>,
-    ) -> Self {
+    pub fn new(cache: Arc<CacheEngine>, log: Arc<LogWriter>, config: Arc<CacheConfig>) -> Self {
         Self {
             cache,
             log,
@@ -241,10 +237,7 @@ fn handle_ban_list(ctx: &AdminContext) -> CliResponse {
 fn handle_ban(ctx: &AdminContext, expression: &str) -> CliResponse {
     match ctx.cache.ban(expression) {
         Ok(()) => CliResponse::ok(format!("Ban added: {expression}")),
-        Err(e) => CliResponse::new(
-            CliStatus::Error,
-            format!("Failed to add ban: {e}"),
-        ),
+        Err(e) => CliResponse::new(CliStatus::Error, format!("Failed to add ban: {e}")),
     }
 }
 
@@ -256,10 +249,7 @@ fn handle_param_show(ctx: &AdminContext, param: Option<&str>) -> CliResponse {
             let value = get_param_value(&config, name);
             match value {
                 Some(v) => CliResponse::ok(format!("{name}: {v}")),
-                None => CliResponse::new(
-                    CliStatus::Error,
-                    format!("Unknown parameter: {name}"),
-                ),
+                None => CliResponse::new(CliStatus::Error, format!("Unknown parameter: {name}")),
             }
         }
         None => {
@@ -286,10 +276,7 @@ fn handle_backend_list() -> CliResponse {
 
 /// Handle the `backend.set_health` command.
 fn handle_backend_set_health(backend: &str) -> CliResponse {
-    CliResponse::new(
-        CliStatus::Error,
-        format!("Backend '{backend}' not found."),
-    )
+    CliResponse::new(CliStatus::Error, format!("Backend '{backend}' not found."))
 }
 
 /// Handle the `vcl.load` command.
@@ -386,7 +373,10 @@ fn handle_log_stream(ctx: &AdminContext, tags_filter: Option<&str>) -> CliRespon
 
     // Parse tag filter
     let tag_names: Option<Vec<&str>> = tags_filter.map(|t| {
-        let stripped = t.strip_prefix("-t ").or_else(|| t.strip_prefix("-t")).unwrap_or(t);
+        let stripped = t
+            .strip_prefix("-t ")
+            .or_else(|| t.strip_prefix("-t"))
+            .unwrap_or(t);
         stripped.split(',').map(|s| s.trim()).collect()
     });
 
@@ -425,9 +415,7 @@ fn get_param_value(config: &CacheConfig, name: &str) -> Option<String> {
         "http2" => Some(config.features.http2.to_string()),
         "esi_disable_xml_check" => Some(config.features.esi_disable_xml_check.to_string()),
         "esi_ignore_https" => Some(config.features.esi_ignore_https.to_string()),
-        "esi_ignore_other_elements" => {
-            Some(config.features.esi_ignore_other_elements.to_string())
-        }
+        "esi_ignore_other_elements" => Some(config.features.esi_ignore_other_elements.to_string()),
         "short_panic" => Some(config.features.short_panic.to_string()),
         "no_coredump" => Some(config.features.no_coredump.to_string()),
         "admin_listen" => Some(config.admin.listen.clone()),
@@ -588,10 +576,7 @@ fn list_all_params(config: &CacheConfig) -> String {
     ];
 
     let owned_params = [
-        (
-            "thread_pools",
-            config.threads.pool_count.to_string(),
-        ),
+        ("thread_pools", config.threads.pool_count.to_string()),
         (
             "thread_pool_min",
             config.threads.thread_pool_min.to_string(),
@@ -636,17 +621,16 @@ mod tests {
     use super::*;
     use rv_cache::CacheEngine;
     use rv_config::CacheConfig;
-    use rv_hash::simple::SimpleListHash;
     use rv_hash::HashSlinger;
+    use rv_hash::simple::SimpleListHash;
     use rv_log::{LogWriter, RingBuffer};
-    use rv_storage::malloc::MallocStevedore;
     use rv_storage::Stevedore;
+    use rv_storage::malloc::MallocStevedore;
 
     fn make_context() -> AdminContext {
         let config = CacheConfig::default();
         let hash: Arc<dyn HashSlinger> = Arc::new(SimpleListHash::new());
-        let storage: Arc<dyn Stevedore> =
-            Arc::new(MallocStevedore::new("test", 256 * 1024 * 1024));
+        let storage: Arc<dyn Stevedore> = Arc::new(MallocStevedore::new("test", 256 * 1024 * 1024));
         let ringbuf = Arc::new(RingBuffer::new(1024));
         let log = Arc::new(LogWriter::new(ringbuf));
         let cache = Arc::new(CacheEngine::new(

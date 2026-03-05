@@ -85,10 +85,7 @@ impl DnsDirector {
                 let mut new_backends = Vec::with_capacity(addrs.len());
 
                 for (i, addr) in addrs.iter().enumerate() {
-                    let be = Arc::new(SimpleBackend::new(
-                        format!("{}.{i}", self.name),
-                        *addr,
-                    ));
+                    let be = Arc::new(SimpleBackend::new(format!("{}.{i}", self.name), *addr));
                     new_rr.add_backend(Arc::clone(&be) as Arc<dyn Backend>);
                     new_backends.push(be);
                 }
@@ -210,7 +207,10 @@ mod tests {
 
         let backends = dir.backends();
         // localhost should resolve to at least one address (127.0.0.1 or ::1).
-        assert!(!backends.is_empty(), "localhost should resolve to at least one address");
+        assert!(
+            !backends.is_empty(),
+            "localhost should resolve to at least one address"
+        );
 
         // All backends should be on port 9999.
         for be in &backends {

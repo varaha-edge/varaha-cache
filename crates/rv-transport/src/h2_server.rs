@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use bytes::Bytes;
-use h2::server;
 use h2::RecvStream;
+use h2::server;
 use tracing::{debug, error};
 
 use rv_http::message::{HttpMessage, HttpVersion};
@@ -34,8 +34,8 @@ pub async fn handle_h2_connection(
     );
 
     while let Some(result) = connection.accept().await {
-        let (request, send_response) = result
-            .map_err(|e| TransportError::Http2(format!("h2 accept error: {e}")))?;
+        let (request, send_response) =
+            result.map_err(|e| TransportError::Http2(format!("h2 accept error: {e}")))?;
 
         let handler = Arc::clone(&handler);
         let conn_info = conn_info.clone();
@@ -84,9 +84,7 @@ async fn handle_h2_stream(
 }
 
 /// Convert HTTP/2 request parts into an HttpMessage.
-fn h2_request_to_message(
-    parts: &http::request::Parts,
-) -> Result<HttpMessage, TransportError> {
+fn h2_request_to_message(parts: &http::request::Parts) -> Result<HttpMessage, TransportError> {
     let method = HttpMethod::from_str(parts.method.as_str());
 
     let url = parts
@@ -173,8 +171,9 @@ fn send_h2_response(
 
         let header_name = http::header::HeaderName::from_bytes(h.name.as_bytes())
             .map_err(|e| TransportError::Http2(format!("invalid header name '{}': {e}", h.name)))?;
-        let header_value = http::header::HeaderValue::from_str(&h.value)
-            .map_err(|e| TransportError::Http2(format!("invalid header value '{}': {e}", h.value)))?;
+        let header_value = http::header::HeaderValue::from_str(&h.value).map_err(|e| {
+            TransportError::Http2(format!("invalid header value '{}': {e}", h.value))
+        })?;
         builder = builder.header(header_name, header_value);
     }
 
@@ -285,10 +284,10 @@ mod tests {
     /// The server runs handle_h2_connection; the client sends a GET and verifies the response.
     #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
     async fn test_h2_roundtrip_get() {
+        use crate::traits::DetectedVersion;
+        use rv_types::HttpStatus;
         use std::future::Future;
         use std::pin::Pin;
-        use rv_types::HttpStatus;
-        use crate::traits::DetectedVersion;
         use tokio::net::{TcpListener, TcpStream};
 
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -302,8 +301,7 @@ mod tests {
              -> Pin<Box<dyn Future<Output = (HttpMessage, Option<Vec<u8>>)> + Send>> {
                 Box::pin(async move {
                     let body = req.url.as_bytes().to_vec();
-                    let mut resp =
-                        HttpMessage::new_response(HttpStatus::OK, HttpVersion::Http2);
+                    let mut resp = HttpMessage::new_response(HttpStatus::OK, HttpVersion::Http2);
                     resp.set_header("content-type", "text/plain");
                     (resp, Some(body))
                 })
@@ -362,10 +360,10 @@ mod tests {
     /// Test h2 server/client roundtrip with a POST body.
     #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
     async fn test_h2_roundtrip_post_with_body() {
+        use crate::traits::DetectedVersion;
+        use rv_types::HttpStatus;
         use std::future::Future;
         use std::pin::Pin;
-        use rv_types::HttpStatus;
-        use crate::traits::DetectedVersion;
         use tokio::net::{TcpListener, TcpStream};
 
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -440,10 +438,10 @@ mod tests {
     /// Test h2 server/client with 204 No Content (empty response body).
     #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
     async fn test_h2_roundtrip_no_content() {
+        use crate::traits::DetectedVersion;
+        use rv_types::HttpStatus;
         use std::future::Future;
         use std::pin::Pin;
-        use rv_types::HttpStatus;
-        use crate::traits::DetectedVersion;
         use tokio::net::{TcpListener, TcpStream};
 
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();

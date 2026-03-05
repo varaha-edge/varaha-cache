@@ -109,18 +109,16 @@ fn decode_url(s: &str) -> Result<Vec<u8>, VmodError> {
                     VmodError::InvalidArgument("truncated percent encoding".to_string())
                 })?
                 .to_digit(16)
-                .ok_or_else(|| {
-                    VmodError::InvalidArgument("invalid percent encoding".to_string())
-                })? as u8;
+                .ok_or_else(|| VmodError::InvalidArgument("invalid percent encoding".to_string()))?
+                as u8;
             let lo = chars
                 .next()
                 .ok_or_else(|| {
                     VmodError::InvalidArgument("truncated percent encoding".to_string())
                 })?
                 .to_digit(16)
-                .ok_or_else(|| {
-                    VmodError::InvalidArgument("invalid percent encoding".to_string())
-                })? as u8;
+                .ok_or_else(|| VmodError::InvalidArgument("invalid percent encoding".to_string()))?
+                as u8;
             bytes.push((hi << 4) | lo);
         } else {
             // For non-ASCII characters, encode as UTF-8 bytes
@@ -305,10 +303,7 @@ mod tests {
                 .unwrap();
 
             let decoded = BlobDecode
-                .call(&[
-                    VclValue::String(encoding.to_string()),
-                    encoded,
-                ])
+                .call(&[VclValue::String(encoding.to_string()), encoded])
                 .unwrap();
 
             if let VclValue::Blob(data) = decoded {

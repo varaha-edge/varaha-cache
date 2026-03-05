@@ -310,9 +310,7 @@ impl<'a> Parser<'a> {
                     self.advance();
                     Some(v)
                 } else {
-                    return Err(
-                        self.error(format!("expected mask length, found {}", tok.kind))
-                    );
+                    return Err(self.error(format!("expected mask length, found {}", tok.kind)));
                 }
             } else {
                 None

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use rv_types::{ObjCoreFlags, VtimDur, VtimReal};
 use rv_types::vsl::Vxid;
+use rv_types::{ObjCoreFlags, VtimDur, VtimReal};
 
 use rv_http::message::HttpMessage;
 use rv_http::rfc2616::TtlCalculation;
@@ -50,7 +50,8 @@ impl FetchContext {
         let now = VtimReal::now();
 
         // Calculate TTL from response headers per RFC 7234
-        let ttl_calc = TtlCalculation::from_response(beresp, now, default_ttl, default_grace, default_keep);
+        let ttl_calc =
+            TtlCalculation::from_response(beresp, now, default_ttl, default_grace, default_keep);
         oc.t_origin = now;
         oc.ttl = ttl_calc.ttl;
         oc.grace = ttl_calc.grace;
@@ -120,10 +121,8 @@ mod tests {
 
     #[test]
     fn test_not_cacheable_500() {
-        let resp = HttpMessage::new_response(
-            HttpStatus::INTERNAL_SERVER_ERROR,
-            HttpVersion::Http11,
-        );
+        let resp =
+            HttpMessage::new_response(HttpStatus::INTERNAL_SERVER_ERROR, HttpVersion::Http11);
         assert!(!is_cacheable(&resp, false));
     }
 

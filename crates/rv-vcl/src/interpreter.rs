@@ -234,7 +234,11 @@ impl VclInterpreter {
 
     fn exec_statement(&self, stmt: &Statement, ctx: &mut VclContext) -> ControlFlow {
         match stmt {
-            Statement::Set { target, operator, value } => {
+            Statement::Set {
+                target,
+                operator,
+                value,
+            } => {
                 let val = match self.eval_expr(value, ctx) {
                     Ok(v) => v,
                     Err(e) => return ControlFlow::Error(e),
@@ -249,15 +253,20 @@ impl VclInterpreter {
             Statement::Call { subroutine } => {
                 let idx = match self.sub_index.get(subroutine.as_str()) {
                     Some(idx) => *idx,
-                    None => return ControlFlow::Error(format!("subroutine not found: {subroutine}")),
+                    None => {
+                        return ControlFlow::Error(format!("subroutine not found: {subroutine}"));
+                    }
                 };
                 let sub = &self.program.subs[idx];
                 self.exec_block(&sub.body, ctx)
             }
-            Statement::Return { action } => {
-                self.handle_return(action, ctx)
-            }
-            Statement::If { condition, body, else_ifs, else_body } => {
+            Statement::Return { action } => self.handle_return(action, ctx),
+            Statement::If {
+                condition,
+                body,
+                else_ifs,
+                else_body,
+            } => {
                 let cond = match self.eval_expr(condition, ctx) {
                     Ok(v) => v,
                     Err(e) => return ControlFlow::Error(e),
@@ -299,54 +308,50 @@ impl VclInterpreter {
                 // Object instantiation -- handled at a higher level
                 ControlFlow::Continue
             }
-            Statement::ExprStatement(expr) => {
-                match self.eval_expr(expr, ctx) {
-                    Ok(_) => ControlFlow::Continue,
-                    Err(e) => ControlFlow::Error(e),
-                }
-            }
+            Statement::ExprStatement(expr) => match self.eval_expr(expr, ctx) {
+                Ok(_) => ControlFlow::Continue,
+                Err(e) => ControlFlow::Error(e),
+            },
         }
     }
 
     fn handle_return(&self, action: &Expr, ctx: &mut VclContext) -> ControlFlow {
         match action {
             // return(pass), return(deliver), etc.
-            Expr::Ident(name) | Expr::Variable(name) => {
-                match VclAction::from_name(name) {
+            Expr::Ident(name) | Expr::Variable(name) => match VclAction::from_name(name) {
+                Some(a) => ControlFlow::Return(a),
+                None => ControlFlow::Error(format!("unknown return action: {name}")),
+            },
+            // return(synth(404, "Not Found")) -- function-call style
+            Expr::FunctionCall { name, args } => match name.as_str() {
+                "synth" => {
+                    if let Some(status_expr) = args.first() {
+                        if let Ok(val) = self.eval_expr(status_expr, ctx) {
+                            ctx.synth_status = Some(val.to_int() as u16);
+                        }
+                    }
+                    if let Some(reason_expr) = args.get(1) {
+                        if let Ok(val) = self.eval_expr(reason_expr, ctx) {
+                            ctx.synth_body = Some(val.to_string_value());
+                        }
+                    }
+                    ControlFlow::Return(VclAction::Synth)
+                }
+                _ => match VclAction::from_name(name) {
                     Some(a) => ControlFlow::Return(a),
                     None => ControlFlow::Error(format!("unknown return action: {name}")),
-                }
-            }
-            // return(synth(404, "Not Found")) -- function-call style
-            Expr::FunctionCall { name, args } => {
-                match name.as_str() {
-                    "synth" => {
-                        if let Some(status_expr) = args.first() {
-                            if let Ok(val) = self.eval_expr(status_expr, ctx) {
-                                ctx.synth_status = Some(val.to_int() as u16);
-                            }
-                        }
-                        if let Some(reason_expr) = args.get(1) {
-                            if let Ok(val) = self.eval_expr(reason_expr, ctx) {
-                                ctx.synth_body = Some(val.to_string_value());
-                            }
-                        }
-                        ControlFlow::Return(VclAction::Synth)
-                    }
-                    _ => {
-                        match VclAction::from_name(name) {
-                            Some(a) => ControlFlow::Return(a),
-                            None => ControlFlow::Error(format!("unknown return action: {name}")),
-                        }
-                    }
-                }
-            }
+                },
+            },
             _ => ControlFlow::Error("invalid return expression".to_string()),
         }
     }
 
     /// Evaluate an expression and return a VclValue.
-    pub fn eval_expr(&self, expr: &Expr, ctx: &mut VclContext) -> Result<VclValue, std::string::String> {
+    pub fn eval_expr(
+        &self,
+        expr: &Expr,
+        ctx: &mut VclContext,
+    ) -> Result<VclValue, std::string::String> {
         match expr {
             Expr::StringLit(s) => Ok(VclValue::String(s.clone())),
             Expr::IntLit(i) => Ok(VclValue::Int(*i)),
@@ -399,7 +404,11 @@ impl VclInterpreter {
                 self.call_builtin(name, &evaluated_args, ctx)
             }
 
-            Expr::MethodCall { object, method, args } => {
+            Expr::MethodCall {
+                object,
+                method,
+                args,
+            } => {
                 let obj_val = self.eval_expr(object, ctx)?;
                 let mut evaluated_args = Vec::with_capacity(args.len());
                 for arg in args {
@@ -408,9 +417,7 @@ impl VclInterpreter {
                 self.call_method(&obj_val, method, &evaluated_args)
             }
 
-            Expr::RegexLit(pattern) => {
-                Ok(VclValue::String(pattern.clone()))
-            }
+            Expr::RegexLit(pattern) => Ok(VclValue::String(pattern.clone())),
 
             Expr::Concat(parts) => {
                 let mut result = std::string::String::new();
@@ -444,23 +451,21 @@ impl VclInterpreter {
             BinOp::Lte => Ok(VclValue::Bool(left.to_real() <= right.to_real())),
             BinOp::And => Ok(VclValue::Bool(left.to_bool() && right.to_bool())),
             BinOp::Or => Ok(VclValue::Bool(left.to_bool() || right.to_bool())),
-            BinOp::Add => {
-                match (left, right) {
-                    (VclValue::Int(a), VclValue::Int(b)) => Ok(VclValue::Int(a + b)),
-                    (VclValue::Duration(a), VclValue::Duration(b)) => Ok(VclValue::Duration(a + b)),
-                    (VclValue::String(a), _) => {
-                        Ok(VclValue::String(format!("{}{}", a, right.to_string_value())))
-                    }
-                    _ => Ok(VclValue::Real(left.to_real() + right.to_real())),
-                }
-            }
-            BinOp::Sub => {
-                match (left, right) {
-                    (VclValue::Int(a), VclValue::Int(b)) => Ok(VclValue::Int(a - b)),
-                    (VclValue::Duration(a), VclValue::Duration(b)) => Ok(VclValue::Duration(a - b)),
-                    _ => Ok(VclValue::Real(left.to_real() - right.to_real())),
-                }
-            }
+            BinOp::Add => match (left, right) {
+                (VclValue::Int(a), VclValue::Int(b)) => Ok(VclValue::Int(a + b)),
+                (VclValue::Duration(a), VclValue::Duration(b)) => Ok(VclValue::Duration(a + b)),
+                (VclValue::String(a), _) => Ok(VclValue::String(format!(
+                    "{}{}",
+                    a,
+                    right.to_string_value()
+                ))),
+                _ => Ok(VclValue::Real(left.to_real() + right.to_real())),
+            },
+            BinOp::Sub => match (left, right) {
+                (VclValue::Int(a), VclValue::Int(b)) => Ok(VclValue::Int(a - b)),
+                (VclValue::Duration(a), VclValue::Duration(b)) => Ok(VclValue::Duration(a - b)),
+                _ => Ok(VclValue::Real(left.to_real() - right.to_real())),
+            },
             BinOp::Mul => Ok(VclValue::Real(left.to_real() * right.to_real())),
             BinOp::Div => {
                 let divisor = right.to_real();
@@ -567,13 +572,11 @@ impl VclInterpreter {
     fn set_variable(&self, name: &str, val: VclValue, op: SetOp, ctx: &mut VclContext) {
         match name {
             // req.* writeable variables
-            "req.url" => {
-                match op {
-                    SetOp::Assign => ctx.req.url = val.to_string_value(),
-                    SetOp::Add => ctx.req.url.push_str(&val.to_string_value()),
-                    SetOp::Subtract => {}
-                }
-            }
+            "req.url" => match op {
+                SetOp::Assign => ctx.req.url = val.to_string_value(),
+                SetOp::Add => ctx.req.url.push_str(&val.to_string_value()),
+                SetOp::Subtract => {}
+            },
             "req.method" => {
                 if op == SetOp::Assign {
                     ctx.req.method = rv_types::HttpMethod::from_str(&val.to_string_value());
@@ -581,13 +584,11 @@ impl VclInterpreter {
             }
 
             // bereq.* writeable variables
-            "bereq.url" => {
-                match op {
-                    SetOp::Assign => ctx.bereq.url = val.to_string_value(),
-                    SetOp::Add => ctx.bereq.url.push_str(&val.to_string_value()),
-                    SetOp::Subtract => {}
-                }
-            }
+            "bereq.url" => match op {
+                SetOp::Assign => ctx.bereq.url = val.to_string_value(),
+                SetOp::Add => ctx.bereq.url.push_str(&val.to_string_value()),
+                SetOp::Subtract => {}
+            },
             "bereq.method" => {
                 if op == SetOp::Assign {
                     ctx.bereq.method = rv_types::HttpMethod::from_str(&val.to_string_value());
@@ -606,31 +607,40 @@ impl VclInterpreter {
                 }
             }
             "beresp.ttl" => {
-                ctx.local_vars.insert("beresp.ttl".to_string(), VclValue::Duration(
-                    apply_duration_op(
-                        ctx.local_vars.get("beresp.ttl").map_or(120.0, |v| v.to_duration_secs()),
+                ctx.local_vars.insert(
+                    "beresp.ttl".to_string(),
+                    VclValue::Duration(apply_duration_op(
+                        ctx.local_vars
+                            .get("beresp.ttl")
+                            .map_or(120.0, |v| v.to_duration_secs()),
                         val.to_duration_secs(),
                         op,
-                    )
-                ));
+                    )),
+                );
             }
             "beresp.grace" => {
-                ctx.local_vars.insert("beresp.grace".to_string(), VclValue::Duration(
-                    apply_duration_op(
-                        ctx.local_vars.get("beresp.grace").map_or(10.0, |v| v.to_duration_secs()),
+                ctx.local_vars.insert(
+                    "beresp.grace".to_string(),
+                    VclValue::Duration(apply_duration_op(
+                        ctx.local_vars
+                            .get("beresp.grace")
+                            .map_or(10.0, |v| v.to_duration_secs()),
                         val.to_duration_secs(),
                         op,
-                    )
-                ));
+                    )),
+                );
             }
             "beresp.keep" => {
-                ctx.local_vars.insert("beresp.keep".to_string(), VclValue::Duration(
-                    apply_duration_op(
-                        ctx.local_vars.get("beresp.keep").map_or(0.0, |v| v.to_duration_secs()),
+                ctx.local_vars.insert(
+                    "beresp.keep".to_string(),
+                    VclValue::Duration(apply_duration_op(
+                        ctx.local_vars
+                            .get("beresp.keep")
+                            .map_or(0.0, |v| v.to_duration_secs()),
                         val.to_duration_secs(),
                         op,
-                    )
-                ));
+                    )),
+                );
             }
             "beresp.uncacheable" => {
                 if op == SetOp::Assign {
@@ -707,7 +717,9 @@ impl VclInterpreter {
                 let pattern = args[1].to_string_value();
                 let replacement = args[2].to_string_value();
                 let re = self.get_or_compile_regex(&pattern)?;
-                Ok(VclValue::String(re.replace(&text, replacement.as_str()).to_string()))
+                Ok(VclValue::String(
+                    re.replace(&text, replacement.as_str()).to_string(),
+                ))
             }
             "regsuball" => {
                 if args.len() < 3 {
@@ -717,7 +729,9 @@ impl VclInterpreter {
                 let pattern = args[1].to_string_value();
                 let replacement = args[2].to_string_value();
                 let re = self.get_or_compile_regex(&pattern)?;
-                Ok(VclValue::String(re.replace_all(&text, replacement.as_str()).to_string()))
+                Ok(VclValue::String(
+                    re.replace_all(&text, replacement.as_str()).to_string(),
+                ))
             }
             "hash_data" => {
                 // Accumulate hash data - noop in interpreter, handled by caller
@@ -811,7 +825,9 @@ mod tests {
         let mut beresp = HttpMessage::default();
         let mut ctx = make_context(&mut req, &mut resp, &mut bereq, &mut beresp);
 
-        let val = interp.eval_expr(&Expr::StringLit("hello".to_string()), &mut ctx).unwrap();
+        let val = interp
+            .eval_expr(&Expr::StringLit("hello".to_string()), &mut ctx)
+            .unwrap();
         assert_eq!(val.to_string_value(), "hello");
     }
 

@@ -26,11 +26,11 @@ impl ObjAttr {
     /// Fixed size for fixed-size attributes, None for variable/auxiliary.
     pub fn fixed_size(&self) -> Option<usize> {
         match self {
-            Self::Len => Some(8),           // sizeof(uint64_t)
-            Self::Vxid => Some(8),          // sizeof(uint64_t)
-            Self::Flags => Some(1),         // 1 byte
-            Self::GzipBits => Some(32),     // 32 bytes
-            Self::LastModified => Some(8),  // sizeof(double)
+            Self::Len => Some(8),          // sizeof(uint64_t)
+            Self::Vxid => Some(8),         // sizeof(uint64_t)
+            Self::Flags => Some(1),        // 1 byte
+            Self::GzipBits => Some(32),    // 32 bytes
+            Self::LastModified => Some(8), // sizeof(double)
             Self::Vary => None,
             Self::Headers => None,
             Self::EsiData => None,

@@ -134,7 +134,10 @@ async fn handle_connection(
 ) -> Result<(), TransportError> {
     // Peek at the first 24 bytes to detect HTTP/2 connection preface.
     let mut peek_buf = [0u8; 24];
-    let peeked = stream.peek(&mut peek_buf).await.map_err(TransportError::Io)?;
+    let peeked = stream
+        .peek(&mut peek_buf)
+        .await
+        .map_err(TransportError::Io)?;
 
     if peeked >= 24 && peek_buf == *H2_PREFACE {
         debug!(peer = %conn_info.client_addr, "detected HTTP/2 connection preface");
@@ -142,8 +145,7 @@ async fn handle_connection(
         let mut h2_conn_info = conn_info;
         h2_conn_info.http_version = DetectedVersion::Http2;
 
-        return h2_server::handle_h2_connection(stream, h2_conn_info, handler, max_body_size)
-            .await;
+        return h2_server::handle_h2_connection(stream, h2_conn_info, handler, max_body_size).await;
     }
 
     // Fall through to HTTP/1.1 handling.

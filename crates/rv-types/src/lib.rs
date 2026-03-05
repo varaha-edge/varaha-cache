@@ -1,5 +1,5 @@
-pub mod body_status;
 pub mod boc_state;
+pub mod body_status;
 pub mod digest;
 pub mod flags;
 pub mod headers;
@@ -15,16 +15,18 @@ pub mod vcl;
 pub mod vcl_value;
 pub mod vsl;
 
-pub use body_status::BodyStatus;
 pub use boc_state::BocState;
+pub use body_status::BodyStatus;
 pub use digest::Digest;
-pub use flags::{BereqFlags, BerespFlags, ObjCoreFlags, ObjExpFlags, ObjFlags, ReqBereqFlags, ReqFlags};
+pub use flags::{
+    BereqFlags, BerespFlags, ObjCoreFlags, ObjExpFlags, ObjFlags, ReqBereqFlags, ReqFlags,
+};
 pub use headers::KnownHeader;
 pub use http_response::HttpStatus;
 pub use locks::LockKind;
 pub use methods::HttpMethod;
 pub use obj_attr::ObjAttr;
-pub use sess::{SessAttr, SessionAccounting, BackendAccounting};
+pub use sess::{BackendAccounting, SessAttr, SessionAccounting};
 pub use stream_close::StreamClose;
 pub use task::TaskPriority;
 pub use time::{VtimDur, VtimMono, VtimReal};

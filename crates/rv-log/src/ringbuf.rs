@@ -39,7 +39,10 @@ impl RingBuffer {
     ///
     /// Panics if `capacity` is zero.
     pub fn new(capacity: usize) -> Self {
-        assert!(capacity > 0, "ring buffer capacity must be greater than zero");
+        assert!(
+            capacity > 0,
+            "ring buffer capacity must be greater than zero"
+        );
         let mut slots = Vec::with_capacity(capacity);
         slots.resize_with(capacity, || None);
         Self {
@@ -138,8 +141,8 @@ impl RingBuffer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rv_types::vsl::Vxid;
     use rv_types::LogTag;
+    use rv_types::vsl::Vxid;
 
     fn make_record(id: u64, msg: &str) -> LogRecord {
         LogRecord::new(LogTag::Debug, Vxid::new(id), msg.to_string())

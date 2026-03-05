@@ -21,7 +21,11 @@ pub struct TlsConfig {
 /// Load PEM-encoded certificates from a file.
 fn load_certs(path: &PathBuf) -> Result<Vec<CertificateDer<'static>>, TransportError> {
     let file = File::open(path).map_err(|e| {
-        TransportError::Tls(format!("failed to open cert file {}: {}", path.display(), e))
+        TransportError::Tls(format!(
+            "failed to open cert file {}: {}",
+            path.display(),
+            e
+        ))
     })?;
     let mut reader = BufReader::new(file);
     let certs: Vec<CertificateDer<'static>> = rustls_pemfile::certs(&mut reader)
@@ -354,19 +358,12 @@ mod tests {
         let serial = der_int(&[0x01]);
 
         // Validity: 2025-01-01 to 2027-01-01
-        let validity = der_seq(
-            &[
-                der_utctime("250101000000Z"),
-                der_utctime("270101000000Z"),
-            ]
-            .concat(),
-        );
+        let validity =
+            der_seq(&[der_utctime("250101000000Z"), der_utctime("270101000000Z")].concat());
 
         // Subject Public Key Info
         let pub_key_bytes = key_pair.public_key().as_ref();
-        let spki_algo = der_seq(
-            &[der_oid(oid_ec_public_key), der_oid(oid_prime256v1)].concat(),
-        );
+        let spki_algo = der_seq(&[der_oid(oid_ec_public_key), der_oid(oid_prime256v1)].concat());
         let spki = der_seq(&[spki_algo, der_bitstring(pub_key_bytes)].concat());
 
         // Version: v3 (integer 2), explicit tag [0]
@@ -379,7 +376,7 @@ mod tests {
             sig_alg.clone(),
             name.clone(), // issuer
             validity,
-            name,         // subject (self-signed)
+            name, // subject (self-signed)
             spki,
         ]
         .concat();

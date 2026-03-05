@@ -308,10 +308,7 @@ mod tests {
         let body = br#"<html><esi:include src="/header" /><p>content</p></html>"#;
         let fragments = parse_esi(body);
         assert_eq!(fragments.len(), 3);
-        assert_eq!(
-            fragments[0],
-            EsiFragment::Literal(b"<html>".to_vec()),
-        );
+        assert_eq!(fragments[0], EsiFragment::Literal(b"<html>".to_vec()),);
         assert_eq!(
             fragments[1],
             EsiFragment::Include {
@@ -342,15 +339,9 @@ mod tests {
         let body = b"before<esi:remove>this should be removed</esi:remove>after";
         let fragments = parse_esi(body);
         assert_eq!(fragments.len(), 3);
-        assert_eq!(
-            fragments[0],
-            EsiFragment::Literal(b"before".to_vec()),
-        );
+        assert_eq!(fragments[0], EsiFragment::Literal(b"before".to_vec()),);
         assert_eq!(fragments[1], EsiFragment::Remove);
-        assert_eq!(
-            fragments[2],
-            EsiFragment::Literal(b"after".to_vec()),
-        );
+        assert_eq!(fragments[2], EsiFragment::Literal(b"after".to_vec()),);
     }
 
     #[test]
@@ -359,10 +350,7 @@ mod tests {
         let fragments = parse_esi(body);
         // Comment produces no fragment, so before and after merge
         assert_eq!(fragments.len(), 1);
-        assert_eq!(
-            fragments[0],
-            EsiFragment::Literal(b"beforeafter".to_vec()),
-        );
+        assert_eq!(fragments[0], EsiFragment::Literal(b"beforeafter".to_vec()),);
     }
 
     #[test]
@@ -397,10 +385,7 @@ mod tests {
         let body = b"<html><body>plain content</body></html>";
         let fragments = parse_esi(body);
         assert_eq!(fragments.len(), 1);
-        assert_eq!(
-            fragments[0],
-            EsiFragment::Literal(body.to_vec()),
-        );
+        assert_eq!(fragments[0], EsiFragment::Literal(body.to_vec()),);
     }
 
     #[test]
@@ -454,9 +439,11 @@ mod tests {
         let result = processor.bytes(VdpAction::Null, body).unwrap();
         // Should produce a placeholder, not the raw tag
         assert_ne!(&result[..], body);
-        assert!(result
-            .windows(b"<!--esi:include".len())
-            .any(|w| w == b"<!--esi:include"));
+        assert!(
+            result
+                .windows(b"<!--esi:include".len())
+                .any(|w| w == b"<!--esi:include")
+        );
     }
 
     #[test]
@@ -502,7 +489,8 @@ mod tests {
 
     #[test]
     fn test_process_body_entry_point() {
-        let body = br#"<html><esi:include src="/nav" /><esi:remove>debug</esi:remove>content</html>"#;
+        let body =
+            br#"<html><esi:include src="/nav" /><esi:remove>debug</esi:remove>content</html>"#;
         let result = process_body(body).unwrap();
         let result_str = std::str::from_utf8(&result).unwrap();
 

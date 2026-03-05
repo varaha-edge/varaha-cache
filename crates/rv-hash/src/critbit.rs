@@ -176,10 +176,7 @@ fn insert_node(
 }
 
 /// Remove a digest from the tree. Returns the new tree and the removed ObjHead (if any).
-fn remove_node(
-    node: CritbitNode,
-    digest: &Digest,
-) -> (Option<CritbitNode>, Option<Arc<ObjHead>>) {
+fn remove_node(node: CritbitNode, digest: &Digest) -> (Option<CritbitNode>, Option<Arc<ObjHead>>) {
     match node {
         CritbitNode::Leaf(ref oh) => {
             if oh.digest == *digest {
@@ -266,7 +263,11 @@ impl HashSlinger for CritbitHash {
         // No initialization needed.
     }
 
-    fn lookup(&self, digest: &Digest, new_oh: Arc<ObjHead>) -> (Arc<ObjHead>, Option<Arc<ObjHead>>) {
+    fn lookup(
+        &self,
+        digest: &Digest,
+        new_oh: Arc<ObjHead>,
+    ) -> (Arc<ObjHead>, Option<Arc<ObjHead>>) {
         // Fast path: read-only search.
         {
             let root = self.root.read();
@@ -556,7 +557,10 @@ mod tests {
             assert!(Arc::ptr_eq(first, oh));
         }
 
-        let insert_count = results.iter().filter(|(_, unused)| unused.is_none()).count();
+        let insert_count = results
+            .iter()
+            .filter(|(_, unused)| unused.is_none())
+            .count();
         assert_eq!(insert_count, 1);
         assert_eq!(first.ref_count(), 8);
     }

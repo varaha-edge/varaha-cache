@@ -47,16 +47,16 @@ impl VmodRegistry {
         function: &str,
         args: &[VclValue],
     ) -> Result<VclValue, VmodError> {
-        let funcs = self.modules.get(module).ok_or_else(|| {
-            VmodError::NotFound(format!("module '{module}' not found"))
-        })?;
+        let funcs = self
+            .modules
+            .get(module)
+            .ok_or_else(|| VmodError::NotFound(format!("module '{module}' not found")))?;
 
-        let func = funcs
-            .iter()
-            .find(|f| f.name() == function)
-            .ok_or_else(|| {
-                VmodError::NotFound(format!("function '{function}' not found in module '{module}'"))
-            })?;
+        let func = funcs.iter().find(|f| f.name() == function).ok_or_else(|| {
+            VmodError::NotFound(format!(
+                "function '{function}' not found in module '{module}'"
+            ))
+        })?;
 
         func.call(args)
     }

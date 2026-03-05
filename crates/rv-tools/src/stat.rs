@@ -2,7 +2,7 @@ use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpStream};
 use std::time::Duration;
 
-use rv_admin::protocol::{decode_response, CliResponse, CliStatus};
+use rv_admin::protocol::{CliResponse, CliStatus, decode_response};
 
 /// Statistics viewer tool - displays cache performance counters.
 /// Equivalent to varnishstat in the C codebase.
@@ -37,10 +37,7 @@ impl StatClient {
     ///
     /// The server sends a challenge; the client computes the SHA-256
     /// response using the shared secret and sends it back.
-    pub fn connect_with_auth(
-        addr: SocketAddr,
-        secret: &str,
-    ) -> Result<Self, anyhow::Error> {
+    pub fn connect_with_auth(addr: SocketAddr, secret: &str) -> Result<Self, anyhow::Error> {
         let stream = TcpStream::connect_timeout(&addr.into(), Duration::from_secs(5))?;
         stream.set_read_timeout(Some(Duration::from_secs(5)))?;
         stream.set_write_timeout(Some(Duration::from_secs(5)))?;
@@ -65,10 +62,7 @@ impl StatClient {
         // Read the auth result.
         let result = client.read_response()?;
         if result.status != CliStatus::Ok {
-            return Err(anyhow::anyhow!(
-                "authentication failed: {}",
-                result.body
-            ));
+            return Err(anyhow::anyhow!("authentication failed: {}", result.body));
         }
 
         Ok(client)

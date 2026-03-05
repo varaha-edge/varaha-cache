@@ -119,10 +119,7 @@ async fn execute_probe(probe: &HealthProbe) -> ProbeResult {
 }
 
 /// Send a minimal HTTP/1.1 GET request and read the status code.
-async fn probe_backend(
-    addr: std::net::SocketAddr,
-    url: &str,
-) -> Result<u16, std::io::Error> {
+async fn probe_backend(addr: std::net::SocketAddr, url: &str) -> Result<u16, std::io::Error> {
     let mut stream = TcpStream::connect(addr).await?;
 
     let request = format!(
@@ -147,9 +144,9 @@ async fn probe_backend(
     let status_line = response.lines().next().unwrap_or("");
     let parts: Vec<&str> = status_line.splitn(3, ' ').collect();
     if parts.len() >= 2 {
-        parts[1].parse::<u16>().map_err(|e| {
-            std::io::Error::new(std::io::ErrorKind::InvalidData, e)
-        })
+        parts[1]
+            .parse::<u16>()
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
     } else {
         Err(std::io::Error::new(
             std::io::ErrorKind::InvalidData,

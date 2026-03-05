@@ -7,8 +7,8 @@
 
 use std::sync::Arc;
 
-use rv_types::vsl::Vxid;
 use rv_types::LogTag;
+use rv_types::vsl::Vxid;
 
 use crate::record::LogRecord;
 use crate::ringbuf::RingBuffer;
@@ -34,12 +34,7 @@ impl LogWriter {
 
         // Emit to the tracing infrastructure as well, so that operators using
         // tracing-subscriber see VSL-style entries in their configured sinks.
-        tracing::trace!(
-            tag = tag.name(),
-            vxid = vxid.0,
-            "{}",
-            data_string,
-        );
+        tracing::trace!(tag = tag.name(), vxid = vxid.0, "{}", data_string,);
 
         let record = LogRecord::new(tag, vxid, data_string);
         self.buffer.write(record);
@@ -50,12 +45,7 @@ impl LogWriter {
     pub fn log_fmt(&self, tag: LogTag, vxid: Vxid, args: std::fmt::Arguments<'_>) {
         let data_string = args.to_string();
 
-        tracing::trace!(
-            tag = tag.name(),
-            vxid = vxid.0,
-            "{}",
-            data_string,
-        );
+        tracing::trace!(tag = tag.name(), vxid = vxid.0, "{}", data_string,);
 
         let record = LogRecord::new(tag, vxid, data_string);
         self.buffer.write(record);
@@ -70,12 +60,7 @@ impl LogWriter {
     pub fn error(&self, vxid: Vxid, msg: impl Into<String>) {
         let msg_string: String = msg.into();
 
-        tracing::error!(
-            tag = "Error",
-            vxid = vxid.0,
-            "{}",
-            msg_string,
-        );
+        tracing::error!(tag = "Error", vxid = vxid.0, "{}", msg_string,);
 
         let record = LogRecord::new(LogTag::Error, vxid, msg_string);
         self.buffer.write(record);
@@ -139,7 +124,14 @@ mod tests {
         let (buf, writer) = setup();
         let url = "/api/v1/data";
         let status = 200;
-        rv_log!(writer, LogTag::RespStatus, Vxid::new(5), "{} {}", url, status);
+        rv_log!(
+            writer,
+            LogTag::RespStatus,
+            Vxid::new(5),
+            "{} {}",
+            url,
+            status
+        );
 
         assert_eq!(buf.len(), 1);
         let (records, _) = buf.read_from(0);

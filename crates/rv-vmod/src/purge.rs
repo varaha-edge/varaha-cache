@@ -117,9 +117,7 @@ mod tests {
     #[test]
     fn test_soft_purge_with_ttl() {
         let f = PurgeSoft;
-        let result = f
-            .call(&[VclValue::Duration(0.0)])
-            .unwrap();
+        let result = f.call(&[VclValue::Duration(0.0)]).unwrap();
         assert!(result.to_bool());
     }
 
@@ -127,10 +125,7 @@ mod tests {
     fn test_soft_purge_with_ttl_and_grace() {
         let f = PurgeSoft;
         let result = f
-            .call(&[
-                VclValue::Duration(0.0),
-                VclValue::Duration(60.0),
-            ])
+            .call(&[VclValue::Duration(0.0), VclValue::Duration(60.0)])
             .unwrap();
         assert!(result.to_bool());
     }

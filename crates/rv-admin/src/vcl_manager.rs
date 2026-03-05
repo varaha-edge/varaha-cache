@@ -74,12 +74,10 @@ impl VclManager {
     /// already exists and is not active, it is replaced.
     pub fn load(&self, name: &str, vcl_source: &str) -> Result<(), String> {
         // Tokenize
-        let tokens = Lexer::tokenize(vcl_source)
-            .map_err(|e| format!("VCL lexer error: {e}"))?;
+        let tokens = Lexer::tokenize(vcl_source).map_err(|e| format!("VCL lexer error: {e}"))?;
 
         // Parse
-        let program = Parser::parse(&tokens)
-            .map_err(|e| format!("VCL parse error: {e}"))?;
+        let program = Parser::parse(&tokens).map_err(|e| format!("VCL parse error: {e}"))?;
 
         let program = Arc::new(program);
         let interpreter = Arc::new(VclInterpreter::new(Arc::clone(&program)));

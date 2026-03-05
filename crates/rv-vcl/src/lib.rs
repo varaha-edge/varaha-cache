@@ -23,13 +23,13 @@ pub mod resolver;
 pub mod token;
 
 pub use ast::{
-    AclDecl, AclEntry, AstNode, BackendDecl, BinOp, Expr, ImportDecl, ProbeDecl, SetOp,
-    Statement, SubDecl, UnaryOp, VclProgram,
+    AclDecl, AclEntry, AstNode, BackendDecl, BinOp, Expr, ImportDecl, ProbeDecl, SetOp, Statement,
+    SubDecl, UnaryOp, VclProgram,
 };
 pub use error::VclError;
 pub use interpreter::{VclContext, VclExecResult, VclInterpreter};
-pub use resolver::FunctionResolver;
-pub use rv_types::VclValue;
 pub use lexer::Lexer;
 pub use parser::Parser;
+pub use resolver::FunctionResolver;
+pub use rv_types::VclValue;
 pub use token::{Token, TokenKind};

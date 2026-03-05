@@ -68,7 +68,13 @@ impl VclValue {
             VclValue::Real(r) => *r,
             VclValue::Int(i) => *i as f64,
             VclValue::Duration(d) => *d,
-            VclValue::Bool(b) => if *b { 1.0 } else { 0.0 },
+            VclValue::Bool(b) => {
+                if *b {
+                    1.0
+                } else {
+                    0.0
+                }
+            }
             VclValue::String(s) => s.parse().unwrap_or(0.0),
             _ => 0.0,
         }
@@ -80,7 +86,13 @@ impl VclValue {
             VclValue::Int(i) => *i,
             VclValue::Real(r) => *r as i64,
             VclValue::Duration(d) => *d as i64,
-            VclValue::Bool(b) => if *b { 1 } else { 0 },
+            VclValue::Bool(b) => {
+                if *b {
+                    1
+                } else {
+                    0
+                }
+            }
             VclValue::String(s) => s.parse().unwrap_or(0),
             _ => 0,
         }
@@ -204,10 +216,22 @@ mod tests {
         assert_eq!(VclValue::Int(3).to_duration_secs(), 3.0);
         assert_eq!(VclValue::String("5s".to_string()).to_duration_secs(), 5.0);
         assert_eq!(VclValue::String("2m".to_string()).to_duration_secs(), 120.0);
-        assert_eq!(VclValue::String("1h".to_string()).to_duration_secs(), 3600.0);
-        assert_eq!(VclValue::String("1d".to_string()).to_duration_secs(), 86400.0);
-        assert_eq!(VclValue::String("500ms".to_string()).to_duration_secs(), 0.5);
-        assert_eq!(VclValue::String("1.5min".to_string()).to_duration_secs(), 90.0);
+        assert_eq!(
+            VclValue::String("1h".to_string()).to_duration_secs(),
+            3600.0
+        );
+        assert_eq!(
+            VclValue::String("1d".to_string()).to_duration_secs(),
+            86400.0
+        );
+        assert_eq!(
+            VclValue::String("500ms".to_string()).to_duration_secs(),
+            0.5
+        );
+        assert_eq!(
+            VclValue::String("1.5min".to_string()).to_duration_secs(),
+            90.0
+        );
         assert_eq!(VclValue::String("10".to_string()).to_duration_secs(), 10.0);
     }
 

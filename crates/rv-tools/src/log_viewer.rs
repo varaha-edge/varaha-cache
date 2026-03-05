@@ -177,8 +177,8 @@ fn main() {
 mod tests {
     use super::*;
     use rv_log::LogWriter;
-    use rv_types::vsl::Vxid;
     use rv_types::LogTag;
+    use rv_types::vsl::Vxid;
 
     fn make_test_buffer() -> Arc<RingBuffer> {
         let buf = Arc::new(RingBuffer::new(64));
@@ -229,11 +229,7 @@ mod tests {
 
     #[test]
     fn log_viewer_format_entry() {
-        let record = LogRecord::new(
-            LogTag::Debug,
-            Vxid::new(42),
-            "test message".to_string(),
-        );
+        let record = LogRecord::new(LogTag::Debug, Vxid::new(42), "test message".to_string());
         let formatted = LogViewer::format_entry(&record);
         assert!(formatted.contains("Debug"));
         assert!(formatted.contains("42"));

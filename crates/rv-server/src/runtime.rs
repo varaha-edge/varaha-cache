@@ -1,6 +1,6 @@
 use std::net::SocketAddr;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
 use anyhow::Result;
@@ -8,9 +8,9 @@ use arc_swap::ArcSwapOption;
 use tokio_util::sync::CancellationToken;
 use tracing::info;
 
+use rv_admin::VclManager;
 use rv_admin::handler::AdminContext;
 use rv_admin::server::AdminServer;
-use rv_admin::VclManager;
 use rv_cache::request::{RequestContext, RequestFsm, RequestState, VclAction};
 use rv_cache::{CacheEngine, CacheLookupResult, TtlInfo};
 use rv_config::CacheConfig;
@@ -260,7 +260,7 @@ async fn shutdown_signal() {
 
     #[cfg(unix)]
     {
-        use tokio::signal::unix::{signal, SignalKind};
+        use tokio::signal::unix::{SignalKind, signal};
         let mut sigterm =
             signal(SignalKind::terminate()).expect("failed to register SIGTERM handler");
         tokio::select! {
@@ -295,14 +295,27 @@ async fn handle_request(
     let wall = VtimReal::now();
 
     // Request lifecycle logging
-    rv_log::rv_log!(log, LogTag::ReqStart, vxid, "{} {}", conn_info.client_addr.ip(), conn_info.client_addr.port());
+    rv_log::rv_log!(
+        log,
+        LogTag::ReqStart,
+        vxid,
+        "{} {}",
+        conn_info.client_addr.ip(),
+        conn_info.client_addr.port()
+    );
     rv_log::rv_log!(log, LogTag::ReqMethod, vxid, "{}", request.method);
     rv_log::rv_log!(log, LogTag::ReqURL, vxid, "{}", request.url);
     rv_log::rv_log!(log, LogTag::ReqProtocol, vxid, "{}", request.protocol);
     for h in request.headers.iter() {
         rv_log::rv_log!(log, LogTag::ReqHeader, vxid, "{}: {}", h.name, h.value);
     }
-    rv_log::rv_log!(log, LogTag::Timestamp, vxid, "Start: {:.6} 0.000000 0.000000", wall.as_secs());
+    rv_log::rv_log!(
+        log,
+        LogTag::Timestamp,
+        vxid,
+        "Start: {:.6} 0.000000 0.000000",
+        wall.as_secs()
+    );
 
     let mut ctx = RequestContext::new(request, vxid);
     ctx.body = body;
@@ -382,9 +395,25 @@ async fn handle_request(
     let elapsed = start.elapsed().as_secs_f64();
     let wall_end = VtimReal::now();
     rv_log::rv_log!(log, LogTag::RespStatus, vxid, "{}", response.status.code());
-    rv_log::rv_log!(log, LogTag::Timestamp, vxid, "Resp: {:.6} {:.6} {:.6}", wall_end.as_secs(), elapsed, elapsed);
+    rv_log::rv_log!(
+        log,
+        LogTag::Timestamp,
+        vxid,
+        "Resp: {:.6} {:.6} {:.6}",
+        wall_end.as_secs(),
+        elapsed,
+        elapsed
+    );
     let resp_body_len = resp_body.as_ref().map(|b| b.len()).unwrap_or(0);
-    rv_log::rv_log!(log, LogTag::ReqAcct, vxid, "{} {} {}", 0, resp_body_len, resp_body_len);
+    rv_log::rv_log!(
+        log,
+        LogTag::ReqAcct,
+        vxid,
+        "{} {} {}",
+        0,
+        resp_body_len,
+        resp_body_len
+    );
     log.log(LogTag::End, vxid, "");
 
     (response, resp_body)
@@ -455,8 +484,15 @@ fn state_lookup(
     match cache.lookup(&digest, None) {
         CacheLookupResult::Hit(oc) => {
             rv_log::rv_log!(log, LogTag::Hit, ctx.vxid, "{}", oc.hits);
-            rv_log::rv_log!(log, LogTag::TTL, ctx.vxid, "hit ttl={:.0}s grace={:.0}s keep={:.0}s",
-                oc.ttl.as_secs(), oc.grace.as_secs(), oc.keep.as_secs());
+            rv_log::rv_log!(
+                log,
+                LogTag::TTL,
+                ctx.vxid,
+                "hit ttl={:.0}s grace={:.0}s keep={:.0}s",
+                oc.ttl.as_secs(),
+                oc.grace.as_secs(),
+                oc.keep.as_secs()
+            );
             ctx.obj = Some(oc.clone());
 
             if let Some(vcl) = vcl {
@@ -477,7 +513,13 @@ fn state_lookup(
                 log.log(LogTag::VclCall, ctx.vxid, "HIT");
                 match vcl.exec_subroutine("vcl_hit", &mut vcl_ctx) {
                     VclExecResult::Action(action) => {
-                        rv_log::rv_log!(log, LogTag::VclReturn, ctx.vxid, "{}", action_name(&action));
+                        rv_log::rv_log!(
+                            log,
+                            LogTag::VclReturn,
+                            ctx.vxid,
+                            "{}",
+                            action_name(&action)
+                        );
                         ctx.vcl_action = Some(convert_action(&action));
                     }
                     VclExecResult::Fallthrough => {
@@ -525,7 +567,13 @@ fn state_lookup(
                 log.log(LogTag::VclCall, ctx.vxid, "MISS");
                 match vcl.exec_subroutine("vcl_miss", &mut vcl_ctx) {
                     VclExecResult::Action(action) => {
-                        rv_log::rv_log!(log, LogTag::VclReturn, ctx.vxid, "{}", action_name(&action));
+                        rv_log::rv_log!(
+                            log,
+                            LogTag::VclReturn,
+                            ctx.vxid,
+                            "{}",
+                            action_name(&action)
+                        );
                         ctx.vcl_action = Some(convert_action(&action));
                     }
                     VclExecResult::Fallthrough => {
@@ -545,9 +593,15 @@ fn state_lookup(
 }
 
 /// Run vcl_pass subroutine.
-fn run_vcl_pass(vcl: &VclInterpreter, ctx: &mut RequestContext, conn_info: &ConnectionInfo, log: &LogWriter) {
+fn run_vcl_pass(
+    vcl: &VclInterpreter,
+    ctx: &mut RequestContext,
+    conn_info: &ConnectionInfo,
+    log: &LogWriter,
+) {
     let mut resp = HttpMessage::default();
-    let mut bereq = HttpMessage::new_request(ctx.request.method, &ctx.request.url, HttpVersion::Http11);
+    let mut bereq =
+        HttpMessage::new_request(ctx.request.method, &ctx.request.url, HttpVersion::Http11);
     let mut beresp = HttpMessage::default();
     let mut vcl_ctx = VclContext::new(&mut ctx.request, &mut resp, &mut bereq, &mut beresp);
     vcl_ctx.client_ip = conn_info.client_addr.ip();
@@ -569,9 +623,15 @@ fn run_vcl_pass(vcl: &VclInterpreter, ctx: &mut RequestContext, conn_info: &Conn
 }
 
 /// Run vcl_miss subroutine.
-fn run_vcl_miss(vcl: &VclInterpreter, ctx: &mut RequestContext, conn_info: &ConnectionInfo, log: &LogWriter) {
+fn run_vcl_miss(
+    vcl: &VclInterpreter,
+    ctx: &mut RequestContext,
+    conn_info: &ConnectionInfo,
+    log: &LogWriter,
+) {
     let mut resp = HttpMessage::default();
-    let mut bereq = HttpMessage::new_request(ctx.request.method, &ctx.request.url, HttpVersion::Http11);
+    let mut bereq =
+        HttpMessage::new_request(ctx.request.method, &ctx.request.url, HttpVersion::Http11);
     let mut beresp = HttpMessage::default();
     let mut vcl_ctx = VclContext::new(&mut ctx.request, &mut resp, &mut bereq, &mut beresp);
     vcl_ctx.client_ip = conn_info.client_addr.ip();
@@ -660,16 +720,41 @@ async fn state_fetch(
     ctx.bereq = Some(bereq.clone());
 
     let fetch_start = Instant::now();
-    rv_log::rv_log!(log, LogTag::Timestamp, ctx.vxid, "Bereq: {:.6} 0.000000 0.000000", VtimReal::now().as_secs());
+    rv_log::rv_log!(
+        log,
+        LogTag::Timestamp,
+        ctx.vxid,
+        "Bereq: {:.6} 0.000000 0.000000",
+        VtimReal::now().as_secs()
+    );
 
     // Fetch from backend
     match rv_transport::http1_client::send_backend_request(addr, &bereq, None, None).await {
         Ok((mut beresp, beresp_body)) => {
             let fetch_elapsed = fetch_start.elapsed().as_secs_f64();
-            rv_log::rv_log!(log, LogTag::Timestamp, ctx.vxid, "Beresp: {:.6} {:.6} {:.6}",
-                VtimReal::now().as_secs(), fetch_elapsed, fetch_elapsed);
-            rv_log::rv_log!(log, LogTag::BerespStatus, ctx.vxid, "{}", beresp.status.code());
-            rv_log::rv_log!(log, LogTag::BerespReason, ctx.vxid, "{}", beresp.status.reason());
+            rv_log::rv_log!(
+                log,
+                LogTag::Timestamp,
+                ctx.vxid,
+                "Beresp: {:.6} {:.6} {:.6}",
+                VtimReal::now().as_secs(),
+                fetch_elapsed,
+                fetch_elapsed
+            );
+            rv_log::rv_log!(
+                log,
+                LogTag::BerespStatus,
+                ctx.vxid,
+                "{}",
+                beresp.status.code()
+            );
+            rv_log::rv_log!(
+                log,
+                LogTag::BerespReason,
+                ctx.vxid,
+                "{}",
+                beresp.status.reason()
+            );
 
             let mut do_gzip = false;
             let mut do_gunzip = false;
@@ -682,19 +767,21 @@ async fn state_fetch(
             if let Some(vcl) = vcl {
                 let mut resp = HttpMessage::default();
                 let mut bereq_for_vcl = bereq.clone();
-                let mut vcl_ctx = VclContext::new(
-                    &mut ctx.request,
-                    &mut resp,
-                    &mut bereq_for_vcl,
-                    &mut beresp,
-                );
+                let mut vcl_ctx =
+                    VclContext::new(&mut ctx.request, &mut resp, &mut bereq_for_vcl, &mut beresp);
                 vcl_ctx.client_ip = conn_info.client_addr.ip();
                 vcl_ctx.restarts = ctx.restarts;
 
                 log.log(LogTag::VclCall, ctx.vxid, "BACKEND_RESPONSE");
                 match vcl.exec_subroutine("vcl_backend_response", &mut vcl_ctx) {
                     VclExecResult::Action(action) => {
-                        rv_log::rv_log!(log, LogTag::VclReturn, ctx.vxid, "{}", action_name(&action));
+                        rv_log::rv_log!(
+                            log,
+                            LogTag::VclReturn,
+                            ctx.vxid,
+                            "{}",
+                            action_name(&action)
+                        );
                         match &action {
                             InterpreterAction::Deliver => {}
                             InterpreterAction::Retry => {
@@ -715,7 +802,13 @@ async fn state_fetch(
                         log.log(LogTag::VclReturn, ctx.vxid, "deliver");
                     }
                     VclExecResult::Error(e) => {
-                        rv_log::rv_log!(log, LogTag::VclError, ctx.vxid, "vcl_backend_response: {}", e);
+                        rv_log::rv_log!(
+                            log,
+                            LogTag::VclError,
+                            ctx.vxid,
+                            "vcl_backend_response: {}",
+                            e
+                        );
                     }
                 }
 
@@ -751,12 +844,25 @@ async fn state_fetch(
                         keep: VtimDur::from_secs(beresp_keep.unwrap_or(0.0)),
                     };
                     let _ = cache.insert(digest.clone(), body, ttl, None);
-                    rv_log::rv_log!(log, LogTag::TTL, ctx.vxid, "stored ttl={:.0}s grace={:.0}s keep={:.0}s",
-                        beresp_ttl.unwrap_or(120.0), beresp_grace.unwrap_or(10.0), beresp_keep.unwrap_or(0.0));
+                    rv_log::rv_log!(
+                        log,
+                        LogTag::TTL,
+                        ctx.vxid,
+                        "stored ttl={:.0}s grace={:.0}s keep={:.0}s",
+                        beresp_ttl.unwrap_or(120.0),
+                        beresp_grace.unwrap_or(10.0),
+                        beresp_keep.unwrap_or(0.0)
+                    );
                     if let Some(ct) = beresp.get_header("Content-Type") {
                         rv_log::rv_log!(log, LogTag::ObjHeader, ctx.vxid, "Content-Type: {}", ct);
                     }
-                    rv_log::rv_log!(log, LogTag::Storage, ctx.vxid, "{} bytes stored", body.len());
+                    rv_log::rv_log!(
+                        log,
+                        LogTag::Storage,
+                        ctx.vxid,
+                        "{} bytes stored",
+                        body.len()
+                    );
                 }
             }
 
@@ -788,10 +894,9 @@ async fn state_fetch(
 /// Returns `true` if the response has not been modified (i.e., a 304 should be sent).
 fn evaluate_conditional(req: &HttpMessage, response: &HttpMessage) -> bool {
     // Check If-None-Match vs ETag
-    if let (Some(if_none_match), Some(etag)) = (
-        req.get_header("If-None-Match"),
-        response.get_header("ETag"),
-    ) {
+    if let (Some(if_none_match), Some(etag)) =
+        (req.get_header("If-None-Match"), response.get_header("ETag"))
+    {
         // If-None-Match can be "*" or a comma-separated list of entity tags
         let if_none_match = if_none_match.trim();
         if if_none_match == "*" {
@@ -1020,10 +1125,7 @@ fn state_deliver(
                     // Range is not satisfiable
                     response.status = HttpStatus::RANGE_NOT_SATISFIABLE;
                     response.reason = HttpStatus::RANGE_NOT_SATISFIABLE.reason().to_string();
-                    response.set_header(
-                        "Content-Range",
-                        format!("bytes */{}", content_length),
-                    );
+                    response.set_header("Content-Range", format!("bytes */{}", content_length));
                     response.unset_header("Content-Length");
                     resp_body = None;
                 }
@@ -1032,7 +1134,13 @@ fn state_deliver(
     }
 
     // Log response details
-    rv_log::rv_log!(log, LogTag::RespStatus, ctx.vxid, "{}", response.status.code());
+    rv_log::rv_log!(
+        log,
+        LogTag::RespStatus,
+        ctx.vxid,
+        "{}",
+        response.status.code()
+    );
     if let Some(body) = &resp_body {
         rv_log::rv_log!(log, LogTag::Length, ctx.vxid, "{}", body.len());
     }
@@ -1044,8 +1152,7 @@ fn state_deliver(
     if let Some(vcl) = vcl {
         let mut bereq = ctx.bereq.take().unwrap_or_default();
         let mut beresp = ctx.beresp.take().unwrap_or_default();
-        let mut vcl_ctx =
-            VclContext::new(&mut ctx.request, &mut response, &mut bereq, &mut beresp);
+        let mut vcl_ctx = VclContext::new(&mut ctx.request, &mut response, &mut bereq, &mut beresp);
         vcl_ctx.client_ip = conn_info.client_addr.ip();
         vcl_ctx.server_ip = conn_info.local_addr.ip();
         vcl_ctx.is_ssl = conn_info.is_tls;
@@ -1122,8 +1229,7 @@ fn state_synth(
     if let Some(vcl) = vcl {
         let mut bereq = HttpMessage::default();
         let mut beresp = HttpMessage::default();
-        let mut vcl_ctx =
-            VclContext::new(&mut ctx.request, &mut response, &mut bereq, &mut beresp);
+        let mut vcl_ctx = VclContext::new(&mut ctx.request, &mut response, &mut bereq, &mut beresp);
         vcl_ctx.client_ip = conn_info.client_addr.ip();
         vcl_ctx.restarts = ctx.restarts;
         vcl_ctx.synth_body = Some(String::from_utf8_lossy(&body).to_string());
@@ -1414,11 +1520,11 @@ backend api {
     // and statement form implemented in the interpreter.
     // ===================================================================
 
-    use rv_hash::simple::SimpleListHash;
     use rv_hash::HashSlinger;
-    use rv_storage::malloc::MallocStevedore;
-    use rv_storage::Stevedore;
+    use rv_hash::simple::SimpleListHash;
     use rv_log::{LogWriter, RingBuffer};
+    use rv_storage::Stevedore;
+    use rv_storage::malloc::MallocStevedore;
     use rv_transport::traits::DetectedVersion;
 
     /// Build a cache engine for testing.
@@ -1430,8 +1536,7 @@ backend api {
     fn make_cache() -> Arc<CacheEngine> {
         let config = CacheConfig::default();
         let hash: Arc<dyn HashSlinger> = Arc::new(SimpleListHash::new());
-        let storage: Arc<dyn Stevedore> =
-            Arc::new(MallocStevedore::new("test", 64 * 1024 * 1024));
+        let storage: Arc<dyn Stevedore> = Arc::new(MallocStevedore::new("test", 64 * 1024 * 1024));
         let ringbuf = Arc::new(RingBuffer::new(1024));
         let log = Arc::new(LogWriter::new(ringbuf));
         Arc::new(CacheEngine::new(config, hash, storage, log))
@@ -1457,9 +1562,7 @@ backend api {
     ///   /rewritten-path -> 200 OK with body confirming rewrite
     ///   anything else   -> 200 OK with generic body
     async fn start_mock_backend() -> SocketAddr {
-        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
-            .await
-            .unwrap();
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap();
 
         tokio::spawn(async move {
@@ -1492,10 +1595,7 @@ backend api {
                     }
 
                     // Parse URL from request line
-                    let url = req_line
-                        .split_whitespace()
-                        .nth(1)
-                        .unwrap_or("/");
+                    let url = req_line.split_whitespace().nth(1).unwrap_or("/");
 
                     let (status, headers, body) = match url {
                         "/api/data" => (
@@ -1510,10 +1610,7 @@ backend api {
                         ),
                         "/api/private" => (
                             "200 OK",
-                            vec![
-                                "Content-Type: text/plain",
-                                "Cache-Control: no-store",
-                            ],
+                            vec!["Content-Type: text/plain", "Cache-Control: no-store"],
                             "private data".to_string(),
                         ),
                         "/rewritten-path" => (
@@ -1534,9 +1631,7 @@ backend api {
                     for h in &req_headers {
                         if h.to_lowercase().starts_with("x-backend-echo:") {
                             let val = h.splitn(2, ':').nth(1).unwrap_or("").trim();
-                            extra_headers.push_str(
-                                &format!("X-Backend-Echoed: {val}\r\n"),
-                            );
+                            extra_headers.push_str(&format!("X-Backend-Echoed: {val}\r\n"));
                         }
                     }
 
@@ -1569,7 +1664,8 @@ backend api {
     /// A VCL program that exercises every subroutine hook, most variable
     /// types, all expression operators, and every statement form.
     fn full_vcl(backend_port: u16) -> String {
-        format!(r#"
+        format!(
+            r#"
 vcl 4.0;
 
 backend default {{
@@ -1771,7 +1867,8 @@ sub vcl_synth {{
     set resp.http.X-Synthetic = "true";
     return (deliver);
 }}
-"#)
+"#
+        )
     }
 
     // ---------------------------------------------------------------
@@ -1787,16 +1884,19 @@ sub vcl_synth {{
         let vcl = Some(make_interpreter(&full_vcl(backend_addr.port())));
         let conn_info = make_conn_info();
 
-        let request = HttpMessage::new_request(
-            HttpMethod::Get,
-            "/blocked/secret",
-            HttpVersion::Http11,
-        );
+        let request =
+            HttpMessage::new_request(HttpMethod::Get, "/blocked/secret", HttpVersion::Http11);
 
         let (resp, body) = handle_request(
-            cache, request, None, conn_info,
-            Some(backend_addr), vcl, make_log(),
-        ).await;
+            cache,
+            request,
+            None,
+            conn_info,
+            Some(backend_addr),
+            vcl,
+            make_log(),
+        )
+        .await;
 
         assert_eq!(resp.status, HttpStatus::FORBIDDEN);
         assert_eq!(resp.get_header("X-Synthetic").unwrap(), "true");
@@ -1821,17 +1921,20 @@ sub vcl_synth {{
         let vcl = Some(make_interpreter(&full_vcl(backend_addr.port())));
         let conn_info = make_conn_info();
 
-        let mut request = HttpMessage::new_request(
-            HttpMethod::Post,
-            "/api/data",
-            HttpVersion::Http11,
-        );
+        let mut request =
+            HttpMessage::new_request(HttpMethod::Post, "/api/data", HttpVersion::Http11);
         request.set_header("Host", "localhost");
 
         let (resp, body) = handle_request(
-            cache, request, None, conn_info,
-            Some(backend_addr), vcl, make_log(),
-        ).await;
+            cache,
+            request,
+            None,
+            conn_info,
+            Some(backend_addr),
+            vcl,
+            make_log(),
+        )
+        .await;
 
         assert_eq!(resp.status, HttpStatus::OK);
         // vcl_deliver sets X-TLS based on conn_info.is_tls (false here)
@@ -1861,17 +1964,20 @@ sub vcl_synth {{
         // -- First request: cache miss --
         let vcl = Some(make_interpreter(&vcl_src));
         let conn_info = make_conn_info();
-        let mut request = HttpMessage::new_request(
-            HttpMethod::Get,
-            "/api/data",
-            HttpVersion::Http11,
-        );
+        let mut request =
+            HttpMessage::new_request(HttpMethod::Get, "/api/data", HttpVersion::Http11);
         request.set_header("Host", "test.example.com");
 
         let (resp1, body1) = handle_request(
-            Arc::clone(&cache), request, None, conn_info.clone(),
-            Some(backend_addr), vcl, make_log(),
-        ).await;
+            Arc::clone(&cache),
+            request,
+            None,
+            conn_info.clone(),
+            Some(backend_addr),
+            vcl,
+            make_log(),
+        )
+        .await;
 
         assert_eq!(resp1.status, HttpStatus::OK);
         assert_eq!(resp1.get_header("X-Cache").unwrap(), "MISS");
@@ -1884,17 +1990,20 @@ sub vcl_synth {{
 
         // -- Second request: cache hit --
         let vcl = Some(make_interpreter(&vcl_src));
-        let mut request2 = HttpMessage::new_request(
-            HttpMethod::Get,
-            "/api/data",
-            HttpVersion::Http11,
-        );
+        let mut request2 =
+            HttpMessage::new_request(HttpMethod::Get, "/api/data", HttpVersion::Http11);
         request2.set_header("Host", "test.example.com");
 
         let (resp2, body2) = handle_request(
-            Arc::clone(&cache), request2, None, conn_info,
-            Some(backend_addr), vcl, make_log(),
-        ).await;
+            Arc::clone(&cache),
+            request2,
+            None,
+            conn_info,
+            Some(backend_addr),
+            vcl,
+            make_log(),
+        )
+        .await;
 
         assert_eq!(resp2.status, HttpStatus::OK);
         assert_eq!(resp2.get_header("X-Cache").unwrap(), "HIT");
@@ -1915,17 +2024,20 @@ sub vcl_synth {{
         let vcl = Some(make_interpreter(&full_vcl(backend_addr.port())));
         let conn_info = make_conn_info();
 
-        let mut request = HttpMessage::new_request(
-            HttpMethod::Get,
-            "/old-path",
-            HttpVersion::Http11,
-        );
+        let mut request =
+            HttpMessage::new_request(HttpMethod::Get, "/old-path", HttpVersion::Http11);
         request.set_header("Host", "localhost");
 
         let (resp, body) = handle_request(
-            cache, request, None, conn_info,
-            Some(backend_addr), vcl, make_log(),
-        ).await;
+            cache,
+            request,
+            None,
+            conn_info,
+            Some(backend_addr),
+            vcl,
+            make_log(),
+        )
+        .await;
 
         assert_eq!(resp.status, HttpStatus::OK);
         let body_str = String::from_utf8(body.unwrap()).unwrap();
@@ -1951,25 +2063,27 @@ sub vcl_synth {{
         // Request WITHOUT X-Custom-Auth -> anonymous
         let vcl = Some(make_interpreter(&vcl_src));
         let conn_info = make_conn_info();
-        let mut req1 = HttpMessage::new_request(
-            HttpMethod::Get,
-            "/api/data",
-            HttpVersion::Http11,
-        );
+        let mut req1 = HttpMessage::new_request(HttpMethod::Get, "/api/data", HttpVersion::Http11);
         req1.set_header("Host", "localhost");
         req1.set_header("Cookie", "session=abc123");
 
         let (resp1, _) = handle_request(
-            make_cache(), req1, None, conn_info.clone(),
-            Some(backend_addr), vcl, make_log(),
-        ).await;
+            make_cache(),
+            req1,
+            None,
+            conn_info.clone(),
+            Some(backend_addr),
+            vcl,
+            make_log(),
+        )
+        .await;
 
         assert_eq!(resp1.status, HttpStatus::OK);
 
         // Request WITH X-Custom-Auth -> authenticated
         let vcl = Some(make_interpreter(&vcl_src));
         let mut req2 = HttpMessage::new_request(
-            HttpMethod::Post,  // POST forces pass
+            HttpMethod::Post, // POST forces pass
             "/something",
             HttpVersion::Http11,
         );
@@ -1977,9 +2091,15 @@ sub vcl_synth {{
         req2.set_header("X-Custom-Auth", "Bearer token123");
 
         let (resp2, _) = handle_request(
-            make_cache(), req2, None, conn_info,
-            Some(backend_addr), vcl, make_log(),
-        ).await;
+            make_cache(),
+            req2,
+            None,
+            conn_info,
+            Some(backend_addr),
+            vcl,
+            make_log(),
+        )
+        .await;
 
         assert_eq!(resp2.status, HttpStatus::OK);
     }
@@ -1997,18 +2117,21 @@ sub vcl_synth {{
         let vcl = Some(make_interpreter(&full_vcl(backend_addr.port())));
         let conn_info = make_conn_info();
 
-        let mut request = HttpMessage::new_request(
-            HttpMethod::Get,
-            "/something",
-            HttpVersion::Http11,
-        );
+        let mut request =
+            HttpMessage::new_request(HttpMethod::Get, "/something", HttpVersion::Http11);
         request.set_header("Host", "localhost");
         request.set_header("X-Force-Restart", "yes");
 
         let (resp, _) = handle_request(
-            cache, request, None, conn_info,
-            Some(backend_addr), vcl, make_log(),
-        ).await;
+            cache,
+            request,
+            None,
+            conn_info,
+            Some(backend_addr),
+            vcl,
+            make_log(),
+        )
+        .await;
 
         assert_eq!(resp.status, HttpStatus::OK);
         assert_eq!(resp.get_header("X-Restarted").unwrap(), "true");
@@ -2031,16 +2154,20 @@ sub vcl_synth {{
 
         // Use POST to force pass (backend always fetched, ETag headers present)
         // Then send GET with If-None-Match on a fresh miss (not cache hit)
-        let mut req = HttpMessage::new_request(
-            HttpMethod::Get, "/api/data", HttpVersion::Http11,
-        );
+        let mut req = HttpMessage::new_request(HttpMethod::Get, "/api/data", HttpVersion::Http11);
         req.set_header("Host", "cond304.example.com");
         req.set_header("If-None-Match", "\"v1-abc123\"");
 
         let (resp, body) = handle_request(
-            cache, req, None, conn_info,
-            Some(backend_addr), Some(make_interpreter(&vcl_src)), make_log(),
-        ).await;
+            cache,
+            req,
+            None,
+            conn_info,
+            Some(backend_addr),
+            Some(make_interpreter(&vcl_src)),
+            make_log(),
+        )
+        .await;
 
         // On a cache miss, the backend returns ETag: "v1-abc123"
         // which matches If-None-Match, so deliver should produce 304
@@ -2064,27 +2191,35 @@ sub vcl_synth {{
 
         // First request populates cache
         let conn_info = make_conn_info();
-        let mut req1 = HttpMessage::new_request(
-            HttpMethod::Get, "/api/data", HttpVersion::Http11,
-        );
+        let mut req1 = HttpMessage::new_request(HttpMethod::Get, "/api/data", HttpVersion::Http11);
         req1.set_header("Host", "range.example.com");
         let (_, full_body) = handle_request(
-            Arc::clone(&cache), req1, None, conn_info.clone(),
-            Some(backend_addr), Some(make_interpreter(&vcl_src)), make_log(),
-        ).await;
+            Arc::clone(&cache),
+            req1,
+            None,
+            conn_info.clone(),
+            Some(backend_addr),
+            Some(make_interpreter(&vcl_src)),
+            make_log(),
+        )
+        .await;
         let full_len = full_body.as_ref().unwrap().len();
 
         // Second request with Range header
-        let mut req2 = HttpMessage::new_request(
-            HttpMethod::Get, "/api/data", HttpVersion::Http11,
-        );
+        let mut req2 = HttpMessage::new_request(HttpMethod::Get, "/api/data", HttpVersion::Http11);
         req2.set_header("Host", "range.example.com");
         req2.set_header("Range", "bytes=0-4");
 
         let (resp2, body2) = handle_request(
-            Arc::clone(&cache), req2, None, conn_info,
-            Some(backend_addr), Some(make_interpreter(&vcl_src)), make_log(),
-        ).await;
+            Arc::clone(&cache),
+            req2,
+            None,
+            conn_info,
+            Some(backend_addr),
+            Some(make_interpreter(&vcl_src)),
+            make_log(),
+        )
+        .await;
 
         assert_eq!(resp2.status, HttpStatus::PARTIAL_CONTENT);
         let range_hdr = resp2.get_header("Content-Range").unwrap();
@@ -2112,29 +2247,39 @@ sub vcl_synth {{
         let conn_info = make_conn_info();
 
         // /api/private returns Cache-Control: no-store -> uncacheable
-        let mut req1 = HttpMessage::new_request(
-            HttpMethod::Get, "/api/private", HttpVersion::Http11,
-        );
+        let mut req1 =
+            HttpMessage::new_request(HttpMethod::Get, "/api/private", HttpVersion::Http11);
         req1.set_header("Host", "priv.example.com");
 
         let (resp1, _) = handle_request(
-            Arc::clone(&cache), req1, None, conn_info.clone(),
-            Some(backend_addr), Some(make_interpreter(&vcl_src)), make_log(),
-        ).await;
+            Arc::clone(&cache),
+            req1,
+            None,
+            conn_info.clone(),
+            Some(backend_addr),
+            Some(make_interpreter(&vcl_src)),
+            make_log(),
+        )
+        .await;
         // VCL says return(pass) for /api/private, so it fetches but doesn't cache
         assert_eq!(resp1.status, HttpStatus::OK);
         assert_eq!(resp1.get_header("X-Cache").unwrap(), "MISS");
 
         // Second request should also miss (not cached)
-        let mut req2 = HttpMessage::new_request(
-            HttpMethod::Get, "/api/private", HttpVersion::Http11,
-        );
+        let mut req2 =
+            HttpMessage::new_request(HttpMethod::Get, "/api/private", HttpVersion::Http11);
         req2.set_header("Host", "priv.example.com");
 
         let (resp2, _) = handle_request(
-            Arc::clone(&cache), req2, None, conn_info,
-            Some(backend_addr), Some(make_interpreter(&vcl_src)), make_log(),
-        ).await;
+            Arc::clone(&cache),
+            req2,
+            None,
+            conn_info,
+            Some(backend_addr),
+            Some(make_interpreter(&vcl_src)),
+            make_log(),
+        )
+        .await;
         assert_eq!(resp2.get_header("X-Cache").unwrap(), "MISS");
     }
 
@@ -2149,16 +2294,19 @@ sub vcl_synth {{
         let cache = make_cache();
         let conn_info = make_conn_info();
 
-        let mut request = HttpMessage::new_request(
-            HttpMethod::Get, "/plain", HttpVersion::Http11,
-        );
+        let mut request = HttpMessage::new_request(HttpMethod::Get, "/plain", HttpVersion::Http11);
         request.set_header("Host", "localhost");
 
         let (resp, body) = handle_request(
-            cache, request, None, conn_info,
-            Some(backend_addr), None, // no VCL
+            cache,
+            request,
+            None,
+            conn_info,
+            Some(backend_addr),
+            None, // no VCL
             make_log(),
-        ).await;
+        )
+        .await;
 
         assert_eq!(resp.status, HttpStatus::OK);
         assert_eq!(resp.get_header("X-Cache").unwrap(), "MISS");
@@ -2176,17 +2324,20 @@ sub vcl_synth {{
         let cache = make_cache();
         let conn_info = make_conn_info();
 
-        let mut request = HttpMessage::new_request(
-            HttpMethod::Get, "/anything", HttpVersion::Http11,
-        );
+        let mut request =
+            HttpMessage::new_request(HttpMethod::Get, "/anything", HttpVersion::Http11);
         request.set_header("Host", "localhost");
 
         let (resp, body) = handle_request(
-            cache, request, None, conn_info,
+            cache,
+            request,
+            None,
+            conn_info,
             None, // no backend
             None, // no VCL
             make_log(),
-        ).await;
+        )
+        .await;
 
         assert_eq!(resp.status, HttpStatus::SERVICE_UNAVAILABLE);
         let body_str = String::from_utf8(body.unwrap()).unwrap();
@@ -2207,15 +2358,20 @@ sub vcl_synth {{
         let mut conn_info = make_conn_info();
         conn_info.is_tls = true; // simulate TLS connection
 
-        let mut request = HttpMessage::new_request(
-            HttpMethod::Post, "/tls-test", HttpVersion::Http11,
-        );
+        let mut request =
+            HttpMessage::new_request(HttpMethod::Post, "/tls-test", HttpVersion::Http11);
         request.set_header("Host", "localhost");
 
         let (resp, _) = handle_request(
-            cache, request, None, conn_info,
-            Some(backend_addr), vcl, make_log(),
-        ).await;
+            cache,
+            request,
+            None,
+            conn_info,
+            Some(backend_addr),
+            vcl,
+            make_log(),
+        )
+        .await;
 
         assert_eq!(resp.get_header("X-TLS").unwrap(), "true");
     }
@@ -2234,25 +2390,33 @@ sub vcl_synth {{
         let conn_info = make_conn_info();
 
         // Populate cache
-        let mut req1 = HttpMessage::new_request(
-            HttpMethod::Get, "/api/data", HttpVersion::Http11,
-        );
+        let mut req1 = HttpMessage::new_request(HttpMethod::Get, "/api/data", HttpVersion::Http11);
         req1.set_header("Host", "ban.example.com");
         let (resp1, _) = handle_request(
-            Arc::clone(&cache), req1, None, conn_info.clone(),
-            Some(backend_addr), Some(make_interpreter(&vcl_src)), make_log(),
-        ).await;
+            Arc::clone(&cache),
+            req1,
+            None,
+            conn_info.clone(),
+            Some(backend_addr),
+            Some(make_interpreter(&vcl_src)),
+            make_log(),
+        )
+        .await;
         assert_eq!(resp1.get_header("X-Cache").unwrap(), "MISS");
 
         // Verify cache hit
-        let mut req2 = HttpMessage::new_request(
-            HttpMethod::Get, "/api/data", HttpVersion::Http11,
-        );
+        let mut req2 = HttpMessage::new_request(HttpMethod::Get, "/api/data", HttpVersion::Http11);
         req2.set_header("Host", "ban.example.com");
         let (resp2, _) = handle_request(
-            Arc::clone(&cache), req2, None, conn_info.clone(),
-            Some(backend_addr), Some(make_interpreter(&vcl_src)), make_log(),
-        ).await;
+            Arc::clone(&cache),
+            req2,
+            None,
+            conn_info.clone(),
+            Some(backend_addr),
+            Some(make_interpreter(&vcl_src)),
+            make_log(),
+        )
+        .await;
         assert_eq!(resp2.get_header("X-Cache").unwrap(), "HIT");
 
         // Verify ban() API works (adds to ban list without error)
@@ -2263,14 +2427,18 @@ sub vcl_synth {{
         cache.purge(&digest);
 
         // After purge, should miss again
-        let mut req3 = HttpMessage::new_request(
-            HttpMethod::Get, "/api/data", HttpVersion::Http11,
-        );
+        let mut req3 = HttpMessage::new_request(HttpMethod::Get, "/api/data", HttpVersion::Http11);
         req3.set_header("Host", "ban.example.com");
         let (resp3, _) = handle_request(
-            Arc::clone(&cache), req3, None, conn_info,
-            Some(backend_addr), Some(make_interpreter(&vcl_src)), make_log(),
-        ).await;
+            Arc::clone(&cache),
+            req3,
+            None,
+            conn_info,
+            Some(backend_addr),
+            Some(make_interpreter(&vcl_src)),
+            make_log(),
+        )
+        .await;
         assert_eq!(resp3.get_header("X-Cache").unwrap(), "MISS");
     }
 
@@ -2290,27 +2458,35 @@ sub vcl_synth {{
         assert_eq!(stats_before.n_objects, 0);
 
         // Miss -> inserts object
-        let mut req1 = HttpMessage::new_request(
-            HttpMethod::Get, "/api/data", HttpVersion::Http11,
-        );
+        let mut req1 = HttpMessage::new_request(HttpMethod::Get, "/api/data", HttpVersion::Http11);
         req1.set_header("Host", "stats.example.com");
         let _ = handle_request(
-            Arc::clone(&cache), req1, None, conn_info.clone(),
-            Some(backend_addr), Some(make_interpreter(&vcl_src)), make_log(),
-        ).await;
+            Arc::clone(&cache),
+            req1,
+            None,
+            conn_info.clone(),
+            Some(backend_addr),
+            Some(make_interpreter(&vcl_src)),
+            make_log(),
+        )
+        .await;
 
         let stats_after_miss = cache.stats();
         assert_eq!(stats_after_miss.cache_miss, stats_before.cache_miss + 1);
 
         // Hit
-        let mut req2 = HttpMessage::new_request(
-            HttpMethod::Get, "/api/data", HttpVersion::Http11,
-        );
+        let mut req2 = HttpMessage::new_request(HttpMethod::Get, "/api/data", HttpVersion::Http11);
         req2.set_header("Host", "stats.example.com");
         let _ = handle_request(
-            Arc::clone(&cache), req2, None, conn_info,
-            Some(backend_addr), Some(make_interpreter(&vcl_src)), make_log(),
-        ).await;
+            Arc::clone(&cache),
+            req2,
+            None,
+            conn_info,
+            Some(backend_addr),
+            Some(make_interpreter(&vcl_src)),
+            make_log(),
+        )
+        .await;
 
         let stats_after_hit = cache.stats();
         assert_eq!(stats_after_hit.cache_hit, stats_before.cache_hit + 1);
@@ -2366,9 +2542,8 @@ sub vcl_synth {
 "#;
 
         let vcl = make_interpreter(vcl_src);
-        let mut req = HttpMessage::new_request(
-            HttpMethod::Get, "/old/path/here", HttpVersion::Http11,
-        );
+        let mut req =
+            HttpMessage::new_request(HttpMethod::Get, "/old/path/here", HttpVersion::Http11);
         let mut resp = HttpMessage::new_response(HttpStatus::OK, HttpVersion::Http11);
         let mut bereq = HttpMessage::default();
         let mut beresp = HttpMessage::default();
@@ -2378,7 +2553,10 @@ sub vcl_synth {
         ctx.server_ip = "10.0.0.1".parse().unwrap();
 
         let result = vcl.exec_subroutine("vcl_recv", &mut ctx);
-        assert!(matches!(result, VclExecResult::Action(InterpreterAction::Synth)));
+        assert!(matches!(
+            result,
+            VclExecResult::Action(InterpreterAction::Synth)
+        ));
 
         // Verify all headers set by the expressions
         assert_eq!(req.get_header("X-Concat").unwrap(), "hello world");
@@ -2425,7 +2603,9 @@ sub vcl_synth {
 
         let vcl = make_interpreter(vcl_src);
         let mut req = HttpMessage::new_request(
-            HttpMethod::Get, "/path?query=1&sort=asc", HttpVersion::Http11,
+            HttpMethod::Get,
+            "/path?query=1&sort=asc",
+            HttpVersion::Http11,
         );
         let mut resp = HttpMessage::new_response(HttpStatus::OK, HttpVersion::Http11);
         let mut bereq = HttpMessage::default();
@@ -2507,9 +2687,7 @@ sub vcl_synth {
         let vcl = make_interpreter(vcl_src);
 
         // Test vcl_recv variables
-        let mut req = HttpMessage::new_request(
-            HttpMethod::Get, "/test", HttpVersion::Http11,
-        );
+        let mut req = HttpMessage::new_request(HttpMethod::Get, "/test", HttpVersion::Http11);
         let mut resp = HttpMessage::new_response(HttpStatus::OK, HttpVersion::Http11);
         let mut bereq = HttpMessage::default();
         let mut beresp = HttpMessage::default();
@@ -2528,9 +2706,7 @@ sub vcl_synth {
         assert_eq!(req.get_header("X-Restarts").unwrap(), "2");
 
         // Test vcl_hit variables
-        let mut req2 = HttpMessage::new_request(
-            HttpMethod::Get, "/test", HttpVersion::Http11,
-        );
+        let mut req2 = HttpMessage::new_request(HttpMethod::Get, "/test", HttpVersion::Http11);
         let mut resp2 = HttpMessage::new_response(HttpStatus::OK, HttpVersion::Http11);
         let mut bereq2 = HttpMessage::default();
         let mut beresp2 = HttpMessage::default();
@@ -2548,9 +2724,7 @@ sub vcl_synth {
         assert_eq!(req2.get_header("X-Obj-Hits").unwrap(), "42");
 
         // Test vcl_backend_response with duration vars
-        let mut req3 = HttpMessage::new_request(
-            HttpMethod::Get, "/test", HttpVersion::Http11,
-        );
+        let mut req3 = HttpMessage::new_request(HttpMethod::Get, "/test", HttpVersion::Http11);
         let mut resp3 = HttpMessage::default();
         let mut bereq3 = HttpMessage::default();
         let mut beresp3 = HttpMessage::new_response(HttpStatus::OK, HttpVersion::Http11);
@@ -2615,9 +2789,7 @@ sub vcl_synth { synthetic("v2"); return (deliver); }
         assert_eq!(mgr.active_name(), Some("v1".to_string()));
 
         // Verify v1 behavior
-        let mut req1 = HttpMessage::new_request(
-            HttpMethod::Get, "/", HttpVersion::Http11,
-        );
+        let mut req1 = HttpMessage::new_request(HttpMethod::Get, "/", HttpVersion::Http11);
         let mut resp1 = HttpMessage::default();
         let mut bereq1 = HttpMessage::default();
         let mut beresp1 = HttpMessage::default();
@@ -2632,24 +2804,19 @@ sub vcl_synth { synthetic("v2"); return (deliver); }
         assert_eq!(mgr.active_name(), Some("v2".to_string()));
 
         // v1 reference still works (in-flight isolation)
-        let mut req_old = HttpMessage::new_request(
-            HttpMethod::Get, "/", HttpVersion::Http11,
-        );
+        let mut req_old = HttpMessage::new_request(HttpMethod::Get, "/", HttpVersion::Http11);
         let mut resp_old = HttpMessage::default();
         let mut bereq_old = HttpMessage::default();
         let mut beresp_old = HttpMessage::default();
-        let mut ctx_old = VclContext::new(
-            &mut req_old, &mut resp_old, &mut bereq_old, &mut beresp_old,
-        );
+        let mut ctx_old =
+            VclContext::new(&mut req_old, &mut resp_old, &mut bereq_old, &mut beresp_old);
         ctx_old.client_ip = "127.0.0.1".parse().unwrap();
         ctx_old.server_ip = "127.0.0.1".parse().unwrap();
         interp_v1.exec_subroutine("vcl_recv", &mut ctx_old);
         assert_eq!(req_old.get_header("X-Version").unwrap(), "v1");
 
         // New requests see v2
-        let mut req2 = HttpMessage::new_request(
-            HttpMethod::Get, "/", HttpVersion::Http11,
-        );
+        let mut req2 = HttpMessage::new_request(HttpMethod::Get, "/", HttpVersion::Http11);
         let mut resp2 = HttpMessage::default();
         let mut bereq2 = HttpMessage::default();
         let mut beresp2 = HttpMessage::default();

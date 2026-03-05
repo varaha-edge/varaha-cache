@@ -371,7 +371,11 @@ mod tests {
         // Make only one healthy.
         be_b.set_healthy(true);
         let resolved = dir.resolve_with_key(key).unwrap();
-        assert_eq!(resolved.name(), "b", "should failover to the only healthy backend");
+        assert_eq!(
+            resolved.name(),
+            "b",
+            "should failover to the only healthy backend"
+        );
     }
 
     #[test]

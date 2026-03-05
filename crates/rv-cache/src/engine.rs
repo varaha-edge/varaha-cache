@@ -1,22 +1,22 @@
 use std::collections::VecDeque;
-use std::sync::atomic::Ordering;
 use std::sync::Arc;
+use std::sync::atomic::Ordering;
 
 use dashmap::DashMap;
 use parking_lot::Mutex;
 use rv_config::CacheConfig;
-use rv_hash::objhead::ObjHead;
 use rv_hash::HashSlinger;
+use rv_hash::objhead::ObjHead;
 use rv_http::vary::VaryMatcher;
 use rv_log::LogWriter;
 use rv_storage::{ObjCore, Stevedore};
-use rv_types::{Digest, LogTag, ObjAttr, VtimDur, VtimReal};
 use rv_types::vsl::Vxid;
+use rv_types::{Digest, LogTag, ObjAttr, VtimDur, VtimReal};
 
 use crate::ban::BanList;
 use crate::error::CacheError;
 use crate::expire::ExpiryManager;
-use crate::lookup::{evaluate_object, CacheLookupResult};
+use crate::lookup::{CacheLookupResult, evaluate_object};
 use crate::stats::CacheStats;
 
 /// Default maximum number of cached objects before LRU eviction begins.
@@ -367,8 +367,7 @@ impl CacheEngine {
             // Free storage for each variant
             if let Some((_, variants)) = removed {
                 for _oc in &variants {
-                    self.storage
-                        .free_obj(&mut ObjCore::new(digest.clone()));
+                    self.storage.free_obj(&mut ObjCore::new(digest.clone()));
                 }
             }
 
@@ -409,9 +408,7 @@ impl CacheEngine {
             self.lru.remove(&oc.digest);
             // Remove from the objects map
             self.objects.remove(&oc.digest);
-            self.storage.free_obj(
-                &mut ObjCore::new(oc.digest.clone()),
-            );
+            self.storage.free_obj(&mut ObjCore::new(oc.digest.clone()));
         }
 
         if count > 0 {
@@ -473,8 +470,7 @@ impl CacheEngine {
             if let Some(victim) = self.lru.evict_oldest() {
                 if let Some((_, variants)) = self.objects.remove(&victim) {
                     for _oc in &variants {
-                        self.storage
-                            .free_obj(&mut ObjCore::new(victim.clone()));
+                        self.storage.free_obj(&mut ObjCore::new(victim.clone()));
                     }
                     self.stats
                         .evictions
@@ -525,12 +521,7 @@ mod tests {
     fn test_insert_and_stats() {
         let engine = make_engine();
 
-        let result = engine.insert(
-            test_digest(1),
-            b"hello world",
-            TtlInfo::default(),
-            None,
-        );
+        let result = engine.insert(test_digest(1), b"hello world", TtlInfo::default(), None);
         assert!(result.is_ok());
 
         let stats = engine.stats();
@@ -616,14 +607,12 @@ mod tests {
         // Build vary data for a gzip variant
         let mut gzip_req = HeaderMap::new();
         gzip_req.set("Accept-Encoding", "gzip");
-        let gzip_vary =
-            VaryMatcher::build_vary_data(Some("Accept-Encoding"), &gzip_req).unwrap();
+        let gzip_vary = VaryMatcher::build_vary_data(Some("Accept-Encoding"), &gzip_req).unwrap();
 
         // Build vary data for a brotli variant
         let mut br_req = HeaderMap::new();
         br_req.set("Accept-Encoding", "br");
-        let br_vary =
-            VaryMatcher::build_vary_data(Some("Accept-Encoding"), &br_req).unwrap();
+        let br_vary = VaryMatcher::build_vary_data(Some("Accept-Encoding"), &br_req).unwrap();
 
         // Insert both variants under the same digest
         engine
@@ -679,8 +668,7 @@ mod tests {
 
         // Vary: * produces a special marker that never matches
         let req = HeaderMap::new();
-        let vary_star =
-            VaryMatcher::build_vary_data(Some("*"), &req).unwrap();
+        let vary_star = VaryMatcher::build_vary_data(Some("*"), &req).unwrap();
 
         engine
             .insert(
@@ -717,8 +705,7 @@ mod tests {
 
         let mut gzip_req = HeaderMap::new();
         gzip_req.set("Accept-Encoding", "gzip");
-        let gzip_vary =
-            VaryMatcher::build_vary_data(Some("Accept-Encoding"), &gzip_req).unwrap();
+        let gzip_vary = VaryMatcher::build_vary_data(Some("Accept-Encoding"), &gzip_req).unwrap();
 
         engine
             .insert(
@@ -746,13 +733,11 @@ mod tests {
 
         let mut gzip_req = HeaderMap::new();
         gzip_req.set("Accept-Encoding", "gzip");
-        let gzip_vary =
-            VaryMatcher::build_vary_data(Some("Accept-Encoding"), &gzip_req).unwrap();
+        let gzip_vary = VaryMatcher::build_vary_data(Some("Accept-Encoding"), &gzip_req).unwrap();
 
         let mut br_req = HeaderMap::new();
         br_req.set("Accept-Encoding", "br");
-        let br_vary =
-            VaryMatcher::build_vary_data(Some("Accept-Encoding"), &br_req).unwrap();
+        let br_vary = VaryMatcher::build_vary_data(Some("Accept-Encoding"), &br_req).unwrap();
 
         engine
             .insert(digest.clone(), b"gzip", TtlInfo::default(), Some(gzip_vary))

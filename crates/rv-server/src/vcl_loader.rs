@@ -11,11 +11,9 @@ pub fn load_vcl(path: &Path) -> Result<VclProgram> {
     let source = std::fs::read_to_string(path)
         .with_context(|| format!("failed to read VCL file: {}", path.display()))?;
 
-    let tokens = Lexer::tokenize(&source)
-        .map_err(|e| anyhow::anyhow!("VCL lexer error: {}", e))?;
+    let tokens = Lexer::tokenize(&source).map_err(|e| anyhow::anyhow!("VCL lexer error: {}", e))?;
 
-    let program = Parser::parse(&tokens)
-        .map_err(|e| anyhow::anyhow!("VCL parser error: {}", e))?;
+    let program = Parser::parse(&tokens).map_err(|e| anyhow::anyhow!("VCL parser error: {}", e))?;
 
     info!(
         path = %path.display(),
@@ -33,8 +31,8 @@ pub fn extract_backends(program: &VclProgram) -> Vec<(String, SocketAddr)> {
 
     for decl in &program.backends {
         let host = eval_string_property(&decl.properties, "host");
-        let port = eval_string_property(&decl.properties, "port")
-            .unwrap_or_else(|| "80".to_string());
+        let port =
+            eval_string_property(&decl.properties, "port").unwrap_or_else(|| "80".to_string());
 
         if let Some(host) = host {
             let addr_str = format!("{}:{}", host, port);
@@ -93,9 +91,15 @@ backend api {
 
         assert_eq!(backends.len(), 2);
         assert_eq!(backends[0].0, "default");
-        assert_eq!(backends[0].1, "127.0.0.1:8080".parse::<SocketAddr>().unwrap());
+        assert_eq!(
+            backends[0].1,
+            "127.0.0.1:8080".parse::<SocketAddr>().unwrap()
+        );
         assert_eq!(backends[1].0, "api");
-        assert_eq!(backends[1].1, "10.0.0.1:9090".parse::<SocketAddr>().unwrap());
+        assert_eq!(
+            backends[1].1,
+            "10.0.0.1:9090".parse::<SocketAddr>().unwrap()
+        );
     }
 
     #[test]
@@ -112,6 +116,9 @@ backend web {
         let backends = extract_backends(&program);
 
         assert_eq!(backends.len(), 1);
-        assert_eq!(backends[0].1, "192.168.1.1:80".parse::<SocketAddr>().unwrap());
+        assert_eq!(
+            backends[0].1,
+            "192.168.1.1:80".parse::<SocketAddr>().unwrap()
+        );
     }
 }

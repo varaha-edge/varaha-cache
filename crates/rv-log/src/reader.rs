@@ -6,8 +6,8 @@
 
 use std::sync::Arc;
 
-use rv_types::vsl::Vxid;
 use rv_types::LogTag;
+use rv_types::vsl::Vxid;
 
 use crate::record::LogRecord;
 use crate::ringbuf::RingBuffer;
@@ -78,21 +78,13 @@ impl LogReader {
 
     /// Filter the given records, returning only those matching the specified tag.
     pub fn filter_by_tag(records: &[LogRecord], tag: LogTag) -> Vec<LogRecord> {
-        records
-            .iter()
-            .filter(|r| r.tag == tag)
-            .cloned()
-            .collect()
+        records.iter().filter(|r| r.tag == tag).cloned().collect()
     }
 
     /// Filter the given records, returning only those matching the specified
     /// transaction ID.
     pub fn filter_by_vxid(records: &[LogRecord], vxid: Vxid) -> Vec<LogRecord> {
-        records
-            .iter()
-            .filter(|r| r.vxid == vxid)
-            .cloned()
-            .collect()
+        records.iter().filter(|r| r.vxid == vxid).cloned().collect()
     }
 
     /// Return the reader's current logical position.
@@ -139,25 +131,13 @@ mod tests {
         let buf = Arc::new(RingBuffer::new(16));
         let mut reader = LogReader::from_start(Arc::clone(&buf));
 
-        buf.write(LogRecord::new(
-            LogTag::Debug,
-            Vxid::new(1),
-            "first".into(),
-        ));
+        buf.write(LogRecord::new(LogTag::Debug, Vxid::new(1), "first".into()));
         let batch1 = reader.read_new();
         assert_eq!(batch1.len(), 1);
         assert_eq!(batch1[0].data, "first");
 
-        buf.write(LogRecord::new(
-            LogTag::Debug,
-            Vxid::new(2),
-            "second".into(),
-        ));
-        buf.write(LogRecord::new(
-            LogTag::Debug,
-            Vxid::new(3),
-            "third".into(),
-        ));
+        buf.write(LogRecord::new(LogTag::Debug, Vxid::new(2), "second".into()));
+        buf.write(LogRecord::new(LogTag::Debug, Vxid::new(3), "third".into()));
         let batch2 = reader.read_new();
         assert_eq!(batch2.len(), 2);
         assert_eq!(batch2[0].data, "second");
@@ -236,11 +216,7 @@ mod tests {
         assert_eq!(reader.position(), 6);
 
         // Write more.
-        buf.write(LogRecord::new(
-            LogTag::Debug,
-            Vxid::new(99),
-            "new".into(),
-        ));
+        buf.write(LogRecord::new(LogTag::Debug, Vxid::new(99), "new".into()));
 
         // Skip past the new record.
         reader.skip_to_end();

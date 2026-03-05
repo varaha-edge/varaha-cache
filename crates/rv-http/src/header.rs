@@ -105,11 +105,7 @@ impl HeaderMap {
 
     /// Copy headers from another HeaderMap, optionally filtering by flags.
     /// Equivalent to http_FilterReq / http_FilterResp in cache_http.c
-    pub fn copy_from_filtered(
-        &mut self,
-        source: &HeaderMap,
-        filter: impl Fn(&Header) -> bool,
-    ) {
+    pub fn copy_from_filtered(&mut self, source: &HeaderMap, filter: impl Fn(&Header) -> bool) {
         for h in source.headers.iter() {
             if filter(h) {
                 self.headers.push(h.clone());
@@ -135,11 +131,7 @@ impl HeaderMap {
             // Remove standard connection-specific headers
             if matches!(
                 lower.as_str(),
-                "connection"
-                    | "keep-alive"
-                    | "transfer-encoding"
-                    | "upgrade"
-                    | "http2-settings"
+                "connection" | "keep-alive" | "transfer-encoding" | "upgrade" | "http2-settings"
             ) {
                 return false;
             }

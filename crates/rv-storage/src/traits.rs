@@ -81,12 +81,7 @@ pub trait Stevedore: Send + Sync {
     fn get_attr(&self, oc: &ObjCore, attr: ObjAttr) -> Option<Vec<u8>>;
 
     /// Sets the value of the given attribute for an object.
-    fn set_attr(
-        &self,
-        oc: &mut ObjCore,
-        attr: ObjAttr,
-        data: &[u8],
-    ) -> Result<(), StorageError>;
+    fn set_attr(&self, oc: &mut ObjCore, attr: ObjAttr, data: &[u8]) -> Result<(), StorageError>;
 
     /// Retrieves the full body of the object.
     fn get_body(&self, oc: &ObjCore) -> Option<Vec<u8>>;

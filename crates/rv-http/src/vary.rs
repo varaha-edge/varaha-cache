@@ -45,11 +45,7 @@ impl VaryMatcher {
             data.extend_from_slice(value_bytes);
         }
 
-        if data.is_empty() {
-            None
-        } else {
-            Some(data)
-        }
+        if data.is_empty() { None } else { Some(data) }
     }
 
     /// Check if a new request matches the stored vary data.
@@ -67,8 +63,7 @@ impl VaryMatcher {
             if pos + 2 > vary_data.len() {
                 return false;
             }
-            let name_len =
-                u16::from_le_bytes([vary_data[pos], vary_data[pos + 1]]) as usize;
+            let name_len = u16::from_le_bytes([vary_data[pos], vary_data[pos + 1]]) as usize;
             pos += 2;
 
             // Read name
@@ -85,8 +80,7 @@ impl VaryMatcher {
             if pos + 2 > vary_data.len() {
                 return false;
             }
-            let value_len =
-                u16::from_le_bytes([vary_data[pos], vary_data[pos + 1]]) as usize;
+            let value_len = u16::from_le_bytes([vary_data[pos], vary_data[pos + 1]]) as usize;
             pos += 2;
 
             // Read stored value
@@ -133,8 +127,7 @@ mod tests {
         let mut req1 = HeaderMap::new();
         req1.set("Accept-Encoding", "gzip");
 
-        let data =
-            VaryMatcher::build_vary_data(Some("Accept-Encoding"), &req1).unwrap();
+        let data = VaryMatcher::build_vary_data(Some("Accept-Encoding"), &req1).unwrap();
 
         // Same request matches
         let mut req2 = HeaderMap::new();
@@ -154,8 +147,7 @@ mod tests {
         req1.set("Accept-Language", "en");
 
         let data =
-            VaryMatcher::build_vary_data(Some("Accept-Encoding, Accept-Language"), &req1)
-                .unwrap();
+            VaryMatcher::build_vary_data(Some("Accept-Encoding, Accept-Language"), &req1).unwrap();
 
         let mut req2 = HeaderMap::new();
         req2.set("Accept-Encoding", "gzip");

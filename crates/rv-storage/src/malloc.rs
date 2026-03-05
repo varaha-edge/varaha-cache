@@ -187,22 +187,13 @@ impl Stevedore for MallocStevedore {
         entry.attrs.get(&attr).cloned()
     }
 
-    fn set_attr(
-        &self,
-        oc: &mut ObjCore,
-        attr: ObjAttr,
-        data: &[u8],
-    ) -> Result<(), StorageError> {
+    fn set_attr(&self, oc: &mut ObjCore, attr: ObjAttr, data: &[u8]) -> Result<(), StorageError> {
         let mut entry = self
             .objects
             .get_mut(&oc.digest)
             .ok_or(StorageError::NotFound)?;
 
-        let old_size = entry
-            .attrs
-            .get(&attr)
-            .map(|v| v.len())
-            .unwrap_or(0);
+        let old_size = entry.attrs.get(&attr).map(|v| v.len()).unwrap_or(0);
         let new_size = data.len();
 
         if new_size > old_size {

@@ -87,9 +87,7 @@ impl RangeSet {
                     end: Some(suffix_length),
                 }
             } else if let Some((start_str, end_str)) = part.split_once('-') {
-                let start: u64 = start_str
-                    .parse()
-                    .map_err(|_| RangeError::InvalidRange)?;
+                let start: u64 = start_str.parse().map_err(|_| RangeError::InvalidRange)?;
                 if end_str.is_empty() {
                     // Open-ended range: 500- means from 500 to end
                     RangeSpec {
@@ -97,9 +95,7 @@ impl RangeSet {
                         end: None,
                     }
                 } else {
-                    let end: u64 = end_str
-                        .parse()
-                        .map_err(|_| RangeError::InvalidRange)?;
+                    let end: u64 = end_str.parse().map_err(|_| RangeError::InvalidRange)?;
                     RangeSpec {
                         start: Some(start),
                         end: Some(end),

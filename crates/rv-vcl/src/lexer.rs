@@ -524,14 +524,20 @@ mod tests {
     #[test]
     fn test_tokenize_string_literal() {
         let tokens = Lexer::tokenize(r#""hello world""#).unwrap();
-        assert_eq!(tokens[0].kind, TokenKind::StringLit("hello world".to_string()));
+        assert_eq!(
+            tokens[0].kind,
+            TokenKind::StringLit("hello world".to_string())
+        );
     }
 
     #[test]
     fn test_tokenize_long_string() {
-        let tokens = Lexer::tokenize(r#"{"multi
+        let tokens = Lexer::tokenize(
+            r#"{"multi
 line
-string"}"#).unwrap();
+string"}"#,
+        )
+        .unwrap();
         assert_eq!(
             tokens[0].kind,
             TokenKind::StringLit("multi\nline\nstring".to_string())

@@ -19,8 +19,8 @@ use tracing::{error, info, warn};
 
 use crate::auth;
 use crate::commands::parse_command;
-use crate::handler::{handle_command, AdminContext};
-use crate::protocol::{encode_response, CliResponse, CliStatus};
+use crate::handler::{AdminContext, handle_command};
+use crate::protocol::{CliResponse, CliStatus, encode_response};
 
 /// An asynchronous TCP server that accepts admin CLI connections.
 ///
@@ -138,8 +138,10 @@ async fn authenticate(
         Ok(())
     } else {
         // Send auth failure and close.
-        let fail =
-            encode_response(&CliResponse::new(CliStatus::Close, "Authentication failed."));
+        let fail = encode_response(&CliResponse::new(
+            CliStatus::Close,
+            "Authentication failed.",
+        ));
         writer.write_all(&fail).await?;
         warn!("Admin client authentication failed");
         Err(crate::error::AdminError::AuthError(
@@ -188,8 +190,7 @@ async fn handle_connection(
 
         // Handle the special "quit" / "close" commands directly.
         if trimmed == "quit" || trimmed == "close" {
-            let resp =
-                encode_response(&CliResponse::new(CliStatus::Close, "Closing connection."));
+            let resp = encode_response(&CliResponse::new(CliStatus::Close, "Closing connection."));
             writer.write_all(&resp).await?;
             break;
         }
@@ -271,7 +272,10 @@ mod tests {
             buf_reader.read_line(&mut banner).await.unwrap();
 
             // The banner should contain the 200 status.
-            assert!(banner.contains("200"), "Expected success banner, got: {banner}");
+            assert!(
+                banner.contains("200"),
+                "Expected success banner, got: {banner}"
+            );
             true
         });
 

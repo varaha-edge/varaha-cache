@@ -161,8 +161,12 @@ mod tests {
 
     struct PassthroughVfp;
     impl FetchProcessor for PassthroughVfp {
-        fn name(&self) -> &str { "passthrough" }
-        fn init(&mut self) -> VfpStatus { VfpStatus::Ok }
+        fn name(&self) -> &str {
+            "passthrough"
+        }
+        fn init(&mut self) -> VfpStatus {
+            VfpStatus::Ok
+        }
         fn pull(&mut self, buf: &mut [u8]) -> (VfpStatus, usize) {
             let data = b"hello";
             let len = data.len().min(buf.len());
@@ -175,8 +179,12 @@ mod tests {
     /// A filter that uppercases data passing through it.
     struct UppercaseVfp;
     impl FetchProcessor for UppercaseVfp {
-        fn name(&self) -> &str { "uppercase" }
-        fn init(&mut self) -> VfpStatus { VfpStatus::Ok }
+        fn name(&self) -> &str {
+            "uppercase"
+        }
+        fn init(&mut self) -> VfpStatus {
+            VfpStatus::Ok
+        }
         fn pull(&mut self, buf: &mut [u8]) -> (VfpStatus, usize) {
             let len = buf.len();
             for b in buf[..len].iter_mut() {
@@ -189,8 +197,12 @@ mod tests {
 
     struct PassthroughVdp;
     impl DeliveryProcessor for PassthroughVdp {
-        fn name(&self) -> &str { "passthrough" }
-        fn init(&mut self) -> Result<(), i32> { Ok(()) }
+        fn name(&self) -> &str {
+            "passthrough"
+        }
+        fn init(&mut self) -> Result<(), i32> {
+            Ok(())
+        }
         fn bytes(&mut self, _action: VdpAction, data: &[u8]) -> Result<Vec<u8>, i32> {
             Ok(data.to_vec())
         }

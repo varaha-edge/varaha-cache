@@ -41,10 +41,9 @@ impl VclValueExt for VclValue {
             VclValue::Real(r) => Ok(*r),
             VclValue::Int(i) => Ok(*i as f64),
             VclValue::Bool(b) => Ok(if *b { 1.0 } else { 0.0 }),
-            VclValue::String(s) => s
-                .trim()
-                .parse::<f64>()
-                .map_err(|e| VmodError::TypeMismatch(format!("cannot convert string to real: {e}"))),
+            VclValue::String(s) => s.trim().parse::<f64>().map_err(|e| {
+                VmodError::TypeMismatch(format!("cannot convert string to real: {e}"))
+            }),
             VclValue::Duration(d) => Ok(*d),
             other => Err(VmodError::TypeMismatch(format!(
                 "cannot convert {other} to real"
@@ -165,9 +164,11 @@ mod tests {
         assert_eq!(VclValue::Bool(false).try_to_int().unwrap(), 0);
         assert_eq!(VclValue::String("42".to_string()).try_to_int().unwrap(), 42);
         assert_eq!(VclValue::Duration(5.0).try_to_int().unwrap(), 5);
-        assert!(VclValue::String("not_a_number".to_string())
-            .try_to_int()
-            .is_err());
+        assert!(
+            VclValue::String("not_a_number".to_string())
+                .try_to_int()
+                .is_err()
+        );
         assert!(VclValue::Blob(vec![1, 2]).try_to_int().is_err());
     }
 
@@ -181,9 +182,11 @@ mod tests {
             3.14
         );
         assert_eq!(VclValue::Duration(2.5).try_to_real().unwrap(), 2.5);
-        assert!(VclValue::Ip(IpAddr::V4(Ipv4Addr::LOCALHOST))
-            .try_to_real()
-            .is_err());
+        assert!(
+            VclValue::Ip(IpAddr::V4(Ipv4Addr::LOCALHOST))
+                .try_to_real()
+                .is_err()
+        );
     }
 
     #[test]

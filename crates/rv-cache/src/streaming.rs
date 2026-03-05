@@ -265,13 +265,8 @@ mod tests {
         let all_data = reader_handle.await.unwrap();
 
         // Verify all chunks arrived
-        let expected = (0..10)
-            .map(|i| format!("chunk{i}"))
-            .collect::<String>();
-        assert_eq!(
-            std::str::from_utf8(&all_data).unwrap(),
-            expected,
-        );
+        let expected = (0..10).map(|i| format!("chunk{i}")).collect::<String>();
+        assert_eq!(std::str::from_utf8(&all_data).unwrap(), expected,);
     }
 
     #[tokio::test]

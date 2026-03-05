@@ -38,13 +38,13 @@
 //! assert_eq!(new_records.len(), 2);
 //! ```
 
-pub mod record;
 pub mod reader;
+pub mod record;
 pub mod ringbuf;
 pub mod writer;
 
 // Re-export the primary public types at crate root for convenience.
-pub use record::LogRecord;
 pub use reader::LogReader;
+pub use record::LogRecord;
 pub use ringbuf::RingBuffer;
 pub use writer::LogWriter;

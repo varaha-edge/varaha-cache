@@ -7,7 +7,9 @@ use rv_types::{BodyStatus, HttpMethod};
 use crate::error::TransportError;
 
 /// Parse an HTTP/1.1 request from a TCP stream.
-pub async fn read_request(stream: &mut BufReader<TcpStream>) -> Result<HttpMessage, TransportError> {
+pub async fn read_request(
+    stream: &mut BufReader<TcpStream>,
+) -> Result<HttpMessage, TransportError> {
     // Read request line
     let mut request_line = String::new();
     let n = stream
@@ -28,9 +30,7 @@ pub async fn read_request(stream: &mut BufReader<TcpStream>) -> Result<HttpMessa
 
     let method = HttpMethod::from_str(parts[0]);
     let url = parts[1].to_string();
-    let version = HttpVersion::from_str(parts[2]).ok_or_else(|| {
-        TransportError::InvalidVersion
-    })?;
+    let version = HttpVersion::from_str(parts[2]).ok_or_else(|| TransportError::InvalidVersion)?;
 
     let mut msg = HttpMessage::new_request(method, url, version);
 
@@ -195,10 +195,7 @@ pub async fn write_response(
 
     // Body
     if let Some(body) = body {
-        stream
-            .write_all(body)
-            .await
-            .map_err(TransportError::Io)?;
+        stream.write_all(body).await.map_err(TransportError::Io)?;
     }
 
     stream.flush().await.map_err(TransportError::Io)?;
@@ -214,8 +211,7 @@ pub fn should_keepalive(msg: &HttpMessage) -> bool {
             .is_some_and(|v| v.eq_ignore_ascii_case("keep-alive"))
     } else {
         // HTTP/1.1: keepalive by default unless "Connection: close"
-        !msg
-            .get_header("Connection")
+        !msg.get_header("Connection")
             .is_some_and(|v| v.eq_ignore_ascii_case("close"))
     }
 }

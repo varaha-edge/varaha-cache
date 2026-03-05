@@ -137,9 +137,8 @@ pub fn decode_response(data: &[u8]) -> Result<CliResponse, AdminError> {
         .parse()
         .map_err(|e| AdminError::InvalidCommand(format!("invalid body length: {e}")))?;
 
-    let status = CliStatus::from_code(status_code).ok_or_else(|| {
-        AdminError::InvalidCommand(format!("unknown status code: {status_code}"))
-    })?;
+    let status = CliStatus::from_code(status_code)
+        .ok_or_else(|| AdminError::InvalidCommand(format!("unknown status code: {status_code}")))?;
 
     // The body starts right after the header newline.
     let body_start = newline_pos + 1;

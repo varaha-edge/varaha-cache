@@ -160,7 +160,11 @@ mod tests {
     fn verify_auth_garbage_response() {
         let challenge = generate_challenge();
         let secret = b"some_secret";
-        assert!(!verify_auth(&challenge, secret, "not_a_valid_hex_hash_at_all"));
+        assert!(!verify_auth(
+            &challenge,
+            secret,
+            "not_a_valid_hex_hash_at_all"
+        ));
     }
 
     #[test]

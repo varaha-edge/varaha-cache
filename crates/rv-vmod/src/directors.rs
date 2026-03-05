@@ -3,7 +3,9 @@
 //! Re-exports the director types from rv-backend and provides a
 //! VMOD function interface for listing available director types.
 
-pub use rv_backend::director::{FallbackDirector, HashDirector, RandomDirector, RoundRobinDirector};
+pub use rv_backend::director::{
+    FallbackDirector, HashDirector, RandomDirector, RoundRobinDirector,
+};
 
 use crate::error::VmodError;
 use crate::registry::VmodFunction;
