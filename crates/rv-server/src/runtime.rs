@@ -920,9 +920,10 @@ fn evaluate_conditional(req: &HttpMessage, response: &HttpMessage) -> bool {
         if let (Some(ims_ts), Some(lm_ts)) = (
             parse_http_date(if_modified_since),
             parse_http_date(last_modified),
-        ) && lm_ts <= ims_ts
-        {
-            return true;
+        ) {
+            if lm_ts <= ims_ts {
+                return true;
+            }
         }
     }
 
