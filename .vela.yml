@@ -5,6 +5,17 @@ version: "1"
 metadata:
   template: false
 
+secrets:
+  - name: kaniko_username
+    key: prioarc-apps/varaha-cache/harbor_username
+    engine: native
+    type: repo
+
+  - name: kaniko_password
+    key: prioarc-apps/varaha-cache/harbor_password
+    engine: native
+    type: repo
+
 steps:
   - name: fmt
     image: rust:1.87-slim
@@ -35,15 +46,13 @@ steps:
   - name: docker-build-push
     image: target/vela-kaniko:latest
     pull: always
+    secrets: [kaniko_username, kaniko_password]
     ruleset:
       branch: [main]
       event: [push]
-    secrets: [harbor_username, harbor_password]
     parameters:
       registry: registry.intra.varaha.io
       repo: registry.intra.varaha.io/varaha/varaha-cache
-      username: ${HARBOR_USERNAME}
-      password: ${HARBOR_PASSWORD}
       tags:
         - latest
         - "build-${VELA_BUILD_NUMBER}"
