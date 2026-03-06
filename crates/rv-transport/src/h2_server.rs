@@ -106,10 +106,10 @@ fn h2_request_to_message(parts: &http::request::Parts) -> Result<HttpMessage, Tr
     }
 
     // Determine body status from headers.
-    if let Some(cl) = msg.get_header("Content-Length")
-        && cl.parse::<usize>().unwrap_or(0) > 0
-    {
-        msg.body_status = BodyStatus::Length;
+    if let Some(cl) = msg.get_header("Content-Length") {
+        if cl.parse::<usize>().unwrap_or(0) > 0 {
+            msg.body_status = BodyStatus::Length;
+        }
     }
     // HTTP/2 does not use Transfer-Encoding: chunked. Body presence is
     // determined by DATA frames, but for the HttpMessage model we leave
@@ -190,12 +190,12 @@ fn send_h2_response(
         .map_err(|e| TransportError::Http2(format!("h2 send_response error: {e}")))?;
 
     // Send the body if present.
-    if let Some(data) = body
-        && !data.is_empty()
-    {
-        send_stream
-            .send_data(Bytes::copy_from_slice(data), true)
-            .map_err(|e| TransportError::Http2(format!("h2 send_data error: {e}")))?;
+    if let Some(data) = body {
+        if !data.is_empty() {
+            send_stream
+                .send_data(Bytes::copy_from_slice(data), true)
+                .map_err(|e| TransportError::Http2(format!("h2 send_data error: {e}")))?;
+        }
     }
 
     Ok(())

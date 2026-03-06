@@ -133,10 +133,10 @@ fn main() {
         // Tail mode: show last N records.
         let entries = viewer.tail(count);
         for entry in &entries {
-            if let Some(ref tag) = tag_filter
-                && !entry.contains(tag.as_str())
-            {
-                continue;
+            if let Some(ref tag) = tag_filter {
+                if !entry.contains(tag.as_str()) {
+                    continue;
+                }
             }
             println!("{entry}");
         }
@@ -146,10 +146,10 @@ fn main() {
         loop {
             let entries = viewer.read_new();
             for entry in &entries {
-                if let Some(ref tag) = tag_filter
-                    && !entry.contains(tag.as_str())
-                {
-                    continue;
+                if let Some(ref tag) = tag_filter {
+                    if !entry.contains(tag.as_str()) {
+                        continue;
+                    }
                 }
                 println!("{entry}");
             }
@@ -162,10 +162,10 @@ fn main() {
             println!("No log records available.");
         } else {
             for entry in &entries {
-                if let Some(ref tag) = tag_filter
-                    && !entry.contains(tag.as_str())
-                {
-                    continue;
+                if let Some(ref tag) = tag_filter {
+                    if !entry.contains(tag.as_str()) {
+                        continue;
+                    }
                 }
                 println!("{entry}");
             }

@@ -198,10 +198,11 @@ async fn handle_connection(
             resp_buf.extend_from_slice(format!("{}: {}\r\n", h.name, h.value).as_bytes());
         }
 
-        if let Some(ref body) = resp_body
-            && response.get_header("Content-Length").is_none()
-        {
-            resp_buf.extend_from_slice(format!("Content-Length: {}\r\n", body.len()).as_bytes());
+        if let Some(ref body) = resp_body {
+            if response.get_header("Content-Length").is_none() {
+                resp_buf
+                    .extend_from_slice(format!("Content-Length: {}\r\n", body.len()).as_bytes());
+            }
         }
 
         if !keepalive {

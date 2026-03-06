@@ -177,15 +177,16 @@ pub async fn write_response(
     }
 
     // Add Content-Length if body is present and header not already set
-    if let Some(body) = body
-        && response.get_header("Content-Length").is_none()
-        && response.get_header("Transfer-Encoding").is_none()
-    {
-        let cl = format!("Content-Length: {}\r\n", body.len());
-        stream
-            .write_all(cl.as_bytes())
-            .await
-            .map_err(TransportError::Io)?;
+    if let Some(body) = body {
+        if response.get_header("Content-Length").is_none()
+            && response.get_header("Transfer-Encoding").is_none()
+        {
+            let cl = format!("Content-Length: {}\r\n", body.len());
+            stream
+                .write_all(cl.as_bytes())
+                .await
+                .map_err(TransportError::Io)?;
+        }
     }
 
     // End of headers
