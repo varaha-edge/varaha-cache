@@ -243,47 +243,32 @@ impl<'a> Lexer<'a> {
         }
 
         // Check for duration suffix
-        if let Some(ch) = self.peek() {
-            if ch == b's' || ch == b'm' || ch == b'h' || ch == b'd' {
-                let suffix_start = self.pos;
-                let suffix_char = ch;
+        if let Some(ch) = self.peek()
+            && (ch == b's' || ch == b'm' || ch == b'h' || ch == b'd')
+        {
+            let suffix_start = self.pos;
+            let suffix_char = ch;
+            self.advance();
+
+            // Check for "ms" (milliseconds)
+            if suffix_char == b'm' && self.peek() == Some(b's') {
                 self.advance();
+                let val: f64 = num_str.parse().map_err(|_| VclError::LexError {
+                    message: format!("invalid number: {num_str}"),
+                    line: self.line,
+                    col: self.col,
+                })?;
+                return Ok(TokenKind::DurationLit(val / 1000.0));
+            }
 
-                // Check for "ms" (milliseconds)
-                if suffix_char == b'm' && self.peek() == Some(b's') {
-                    self.advance();
-                    let val: f64 = num_str.parse().map_err(|_| VclError::LexError {
-                        message: format!("invalid number: {num_str}"),
-                        line: self.line,
-                        col: self.col,
-                    })?;
-                    return Ok(TokenKind::DurationLit(val / 1000.0));
-                }
-
-                // Check that the char after the suffix is not alphanumeric (i.e. it is truly
-                // a duration suffix and not part of an identifier like `set`)
-                if let Some(next) = self.peek() {
-                    if next.is_ascii_alphanumeric() || next == b'_' {
-                        // Not a duration suffix; rewind
-                        self.pos = suffix_start;
-                        self.col -= 1; // rough unwind; col is not perfectly tracked on rewind
-                    } else {
-                        let val: f64 = num_str.parse().map_err(|_| VclError::LexError {
-                            message: format!("invalid number: {num_str}"),
-                            line: self.line,
-                            col: self.col,
-                        })?;
-                        let seconds = match suffix_char {
-                            b's' => val,
-                            b'm' => val * 60.0,
-                            b'h' => val * 3600.0,
-                            b'd' => val * 86400.0,
-                            _ => unreachable!(),
-                        };
-                        return Ok(TokenKind::DurationLit(seconds));
-                    }
+            // Check that the char after the suffix is not alphanumeric (i.e. it is truly
+            // a duration suffix and not part of an identifier like `set`)
+            if let Some(next) = self.peek() {
+                if next.is_ascii_alphanumeric() || next == b'_' {
+                    // Not a duration suffix; rewind
+                    self.pos = suffix_start;
+                    self.col -= 1; // rough unwind; col is not perfectly tracked on rewind
                 } else {
-                    // End of input after suffix: it is a duration
                     let val: f64 = num_str.parse().map_err(|_| VclError::LexError {
                         message: format!("invalid number: {num_str}"),
                         line: self.line,
@@ -298,6 +283,21 @@ impl<'a> Lexer<'a> {
                     };
                     return Ok(TokenKind::DurationLit(seconds));
                 }
+            } else {
+                // End of input after suffix: it is a duration
+                let val: f64 = num_str.parse().map_err(|_| VclError::LexError {
+                    message: format!("invalid number: {num_str}"),
+                    line: self.line,
+                    col: self.col,
+                })?;
+                let seconds = match suffix_char {
+                    b's' => val,
+                    b'm' => val * 60.0,
+                    b'h' => val * 3600.0,
+                    b'd' => val * 86400.0,
+                    _ => unreachable!(),
+                };
+                return Ok(TokenKind::DurationLit(seconds));
             }
         }
 
@@ -546,9 +546,9 @@ string"}"#,
 
     #[test]
     fn test_tokenize_integers_and_reals() {
-        let tokens = Lexer::tokenize("42 3.14").unwrap();
+        let tokens = Lexer::tokenize("42 3.15").unwrap();
         assert_eq!(tokens[0].kind, TokenKind::IntLit(42));
-        assert_eq!(tokens[1].kind, TokenKind::RealLit(3.14));
+        assert_eq!(tokens[1].kind, TokenKind::RealLit(3.15));
     }
 
     #[test]

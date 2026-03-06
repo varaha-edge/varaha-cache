@@ -3,7 +3,6 @@ use std::net::SocketAddr;
 
 /// Admin CLI tool - connects to the management port.
 /// Equivalent to varnishadm in the C codebase.
-
 fn print_usage() {
     eprintln!("Usage: rv-admin-cli [OPTIONS] [COMMAND...]");
     eprintln!();
@@ -98,7 +97,7 @@ fn send_command(addr: SocketAddr, command: &str) {
     use std::net::TcpStream;
     use std::time::Duration;
 
-    match TcpStream::connect_timeout(&addr.into(), Duration::from_secs(5)) {
+    match TcpStream::connect_timeout(&addr, Duration::from_secs(5)) {
         Ok(mut stream) => {
             stream.set_read_timeout(Some(Duration::from_secs(5))).ok();
             stream.set_write_timeout(Some(Duration::from_secs(5))).ok();

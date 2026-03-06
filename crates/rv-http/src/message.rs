@@ -10,16 +10,20 @@ pub enum HttpVersion {
     Http2,
 }
 
-impl HttpVersion {
-    pub fn from_str(s: &str) -> Option<Self> {
+impl std::str::FromStr for HttpVersion {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "HTTP/1.0" => Some(Self::Http10),
-            "HTTP/1.1" => Some(Self::Http11),
-            "HTTP/2" | "HTTP/2.0" => Some(Self::Http2),
-            _ => None,
+            "HTTP/1.0" => Ok(Self::Http10),
+            "HTTP/1.1" => Ok(Self::Http11),
+            "HTTP/2" | "HTTP/2.0" => Ok(Self::Http2),
+            _ => Err(()),
         }
     }
+}
 
+impl HttpVersion {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Http10 => "HTTP/1.0",

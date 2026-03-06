@@ -4,7 +4,7 @@ use rv_log::{LogReader, LogRecord, RingBuffer};
 
 /// Log viewer tool - streams VSL records from the ring buffer.
 /// Equivalent to varnishlog in the C codebase.
-
+///
 /// An in-process log viewer that reads from a shared ring buffer.
 ///
 /// The `LogViewer` wraps a `LogReader` and provides convenience methods
@@ -31,7 +31,7 @@ impl LogViewer {
     /// records are returned. Each entry is formatted using `format_entry`.
     pub fn tail(&self, count: usize) -> Vec<String> {
         let records = self.reader.tail(count);
-        records.iter().map(|r| Self::format_entry(r)).collect()
+        records.iter().map(Self::format_entry).collect()
     }
 
     /// Format a single log record as a human-readable string.
@@ -54,14 +54,14 @@ impl LogViewer {
     /// formatted strings.
     pub fn read_new(&mut self) -> Vec<String> {
         let records = self.reader.read_new();
-        records.iter().map(|r| Self::format_entry(r)).collect()
+        records.iter().map(Self::format_entry).collect()
     }
 
     /// Read all records currently stored in the ring buffer as
     /// formatted strings.
     pub fn read_all(&self) -> Vec<String> {
         let records = self.reader.read_all();
-        records.iter().map(|r| Self::format_entry(r)).collect()
+        records.iter().map(Self::format_entry).collect()
     }
 
     /// Return a reference to the underlying `LogReader` for advanced
@@ -133,10 +133,10 @@ fn main() {
         // Tail mode: show last N records.
         let entries = viewer.tail(count);
         for entry in &entries {
-            if let Some(ref tag) = tag_filter {
-                if !entry.contains(tag.as_str()) {
-                    continue;
-                }
+            if let Some(ref tag) = tag_filter
+                && !entry.contains(tag.as_str())
+            {
+                continue;
             }
             println!("{entry}");
         }
@@ -146,10 +146,10 @@ fn main() {
         loop {
             let entries = viewer.read_new();
             for entry in &entries {
-                if let Some(ref tag) = tag_filter {
-                    if !entry.contains(tag.as_str()) {
-                        continue;
-                    }
+                if let Some(ref tag) = tag_filter
+                    && !entry.contains(tag.as_str())
+                {
+                    continue;
                 }
                 println!("{entry}");
             }
@@ -162,10 +162,10 @@ fn main() {
             println!("No log records available.");
         } else {
             for entry in &entries {
-                if let Some(ref tag) = tag_filter {
-                    if !entry.contains(tag.as_str()) {
-                        continue;
-                    }
+                if let Some(ref tag) = tag_filter
+                    && !entry.contains(tag.as_str())
+                {
+                    continue;
                 }
                 println!("{entry}");
             }

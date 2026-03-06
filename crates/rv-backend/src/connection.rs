@@ -152,12 +152,12 @@ impl ConnectionPool {
             }
         }
 
-        if let Some(addr) = oldest_addr {
-            if let Some(queue) = conns.get_mut(&addr) {
-                queue.pop_front();
-                if queue.is_empty() {
-                    conns.remove(&addr);
-                }
+        if let Some(addr) = oldest_addr
+            && let Some(queue) = conns.get_mut(&addr)
+        {
+            queue.pop_front();
+            if queue.is_empty() {
+                conns.remove(&addr);
             }
         }
     }

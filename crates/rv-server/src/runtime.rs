@@ -44,7 +44,7 @@ pub struct ServerRuntime {
     pub cache: Arc<CacheEngine>,
     pub log: Arc<LogWriter>,
     pub config: Arc<CacheConfig>,
-    pub start_time: Instant,
+    pub _start_time: Instant,
     /// Atomically-swappable VCL interpreter. Shared between the request
     /// handler (reads) and the admin handler (writes on `vcl.use`).
     /// Each request loads the current `Arc<VclInterpreter>` at the start
@@ -75,11 +75,11 @@ impl ServerRuntime {
             let backends = vcl_loader::extract_backends(&program);
 
             // Use first backend from VCL if no -b flag was given
-            if args.backend_addr.is_none() {
-                if let Some((name, addr)) = backends.first() {
-                    info!(backend = %name, addr = %addr, "using backend from VCL");
-                    args.backend_addr = Some(*addr);
-                }
+            if args.backend_addr.is_none()
+                && let Some((name, addr)) = backends.first()
+            {
+                info!(backend = %name, addr = %addr, "using backend from VCL");
+                args.backend_addr = Some(*addr);
             }
 
             let registry = Arc::new(rv_vmod::VmodRegistry::default());
@@ -114,7 +114,7 @@ impl ServerRuntime {
             cache,
             log,
             config,
-            start_time: Instant::now(),
+            _start_time: Instant::now(),
             active_vcl,
             drain_timeout: DEFAULT_DRAIN_TIMEOUT,
         })
@@ -478,7 +478,7 @@ fn state_lookup(
     let key = format!("{}:{}", host, ctx.request.url);
     rv_log::rv_log!(log, LogTag::Hash, ctx.vxid, "{}", key);
     let digest = compute_digest(&key);
-    ctx.digest = Some(digest.clone());
+    ctx.digest = Some(digest);
 
     // Cache lookup
     match cache.lookup(&digest, None) {
@@ -699,7 +699,7 @@ async fn state_fetch(
 
         log.log(LogTag::VclCall, ctx.vxid, "BACKEND_FETCH");
         match vcl.exec_subroutine("vcl_backend_fetch", &mut vcl_ctx) {
-            VclExecResult::Action(action) if action == InterpreterAction::Abandon => {
+            VclExecResult::Action(InterpreterAction::Abandon) => {
                 log.log(LogTag::VclReturn, ctx.vxid, "abandon");
                 ctx.vcl_action = Some(VclAction::Synth);
                 ctx.synth_status = Some(HttpStatus::SERVICE_UNAVAILABLE);
@@ -836,46 +836,47 @@ async fn state_fetch(
             ctx.beresp_keep = beresp_keep;
 
             // Cache the response if cacheable
-            if !ctx.is_pass && !uncacheable && beresp.status == HttpStatus::OK {
-                if let (Some(body), Some(digest)) = (&beresp_body, &ctx.digest) {
-                    let ttl = TtlInfo {
-                        ttl: VtimDur::from_secs(beresp_ttl.unwrap_or(120.0)),
-                        grace: VtimDur::from_secs(beresp_grace.unwrap_or(10.0)),
-                        keep: VtimDur::from_secs(beresp_keep.unwrap_or(0.0)),
-                    };
-                    let _ = cache.insert(digest.clone(), body, ttl, None);
-                    rv_log::rv_log!(
-                        log,
-                        LogTag::TTL,
-                        ctx.vxid,
-                        "stored ttl={:.0}s grace={:.0}s keep={:.0}s",
-                        beresp_ttl.unwrap_or(120.0),
-                        beresp_grace.unwrap_or(10.0),
-                        beresp_keep.unwrap_or(0.0)
-                    );
-                    if let Some(ct) = beresp.get_header("Content-Type") {
-                        rv_log::rv_log!(log, LogTag::ObjHeader, ctx.vxid, "Content-Type: {}", ct);
-                    }
-                    rv_log::rv_log!(
-                        log,
-                        LogTag::Storage,
-                        ctx.vxid,
-                        "{} bytes stored",
-                        body.len()
-                    );
+            if !ctx.is_pass
+                && !uncacheable
+                && beresp.status == HttpStatus::OK
+                && let (Some(body), Some(digest)) = (&beresp_body, &ctx.digest)
+            {
+                let ttl = TtlInfo {
+                    ttl: VtimDur::from_secs(beresp_ttl.unwrap_or(120.0)),
+                    grace: VtimDur::from_secs(beresp_grace.unwrap_or(10.0)),
+                    keep: VtimDur::from_secs(beresp_keep.unwrap_or(0.0)),
+                };
+                let _ = cache.insert(*digest, body, ttl, None);
+                rv_log::rv_log!(
+                    log,
+                    LogTag::TTL,
+                    ctx.vxid,
+                    "stored ttl={:.0}s grace={:.0}s keep={:.0}s",
+                    beresp_ttl.unwrap_or(120.0),
+                    beresp_grace.unwrap_or(10.0),
+                    beresp_keep.unwrap_or(0.0)
+                );
+                if let Some(ct) = beresp.get_header("Content-Type") {
+                    rv_log::rv_log!(log, LogTag::ObjHeader, ctx.vxid, "Content-Type: {}", ct);
                 }
+                rv_log::rv_log!(
+                    log,
+                    LogTag::Storage,
+                    ctx.vxid,
+                    "{} bytes stored",
+                    body.len()
+                );
             }
 
             ctx.beresp = Some(beresp);
             ctx.resp_body = beresp_body;
 
             // Apply fetch filters (e.g., gunzip backend response)
-            if ctx.do_gunzip {
-                if let Some(ref body) = ctx.resp_body {
-                    if let Ok(decompressed) = rv_filter::decompress_gzip(body) {
-                        ctx.resp_body = Some(decompressed);
-                    }
-                }
+            if ctx.do_gunzip
+                && let Some(ref body) = ctx.resp_body
+                && let Ok(decompressed) = rv_filter::decompress_gzip(body)
+            {
+                ctx.resp_body = Some(decompressed);
             }
         }
         Err(e) => {
@@ -920,10 +921,9 @@ fn evaluate_conditional(req: &HttpMessage, response: &HttpMessage) -> bool {
         if let (Some(ims_ts), Some(lm_ts)) = (
             parse_http_date(if_modified_since),
             parse_http_date(last_modified),
-        ) {
-            if lm_ts <= ims_ts {
-                return true;
-            }
+        ) && lm_ts <= ims_ts
+        {
+            return true;
         }
     }
 
@@ -1098,37 +1098,36 @@ fn state_deliver(
     if ctx.request.method == HttpMethod::Get
         && response.status == HttpStatus::OK
         && ctx.request.get_header("Range").is_some()
+        && let Some(body) = &resp_body
     {
-        if let Some(body) = &resp_body {
-            let content_length = body.len();
-            let range_header = ctx.request.get_header("Range").unwrap();
+        let content_length = body.len();
+        let range_header = ctx.request.get_header("Range").unwrap();
 
-            match parse_range_header(range_header, content_length) {
-                Some(ranges) if ranges.len() == 1 => {
-                    // Single range -- serve 206 with Content-Range
-                    let (start, end) = ranges[0];
-                    response.status = HttpStatus::PARTIAL_CONTENT;
-                    response.reason = HttpStatus::PARTIAL_CONTENT.reason().to_string();
-                    response.set_header(
-                        "Content-Range",
-                        format!("bytes {}-{}/{}", start, end, content_length),
-                    );
-                    let sliced = body[start..=end].to_vec();
-                    response.set_header("Content-Length", sliced.len().to_string());
-                    resp_body = Some(sliced);
-                }
-                Some(_ranges) => {
-                    // Multiple ranges -- for simplicity, only support single range.
-                    // Serve the full response as-is (valid per RFC 7233 section 4.1).
-                }
-                None => {
-                    // Range is not satisfiable
-                    response.status = HttpStatus::RANGE_NOT_SATISFIABLE;
-                    response.reason = HttpStatus::RANGE_NOT_SATISFIABLE.reason().to_string();
-                    response.set_header("Content-Range", format!("bytes */{}", content_length));
-                    response.unset_header("Content-Length");
-                    resp_body = None;
-                }
+        match parse_range_header(range_header, content_length) {
+            Some(ranges) if ranges.len() == 1 => {
+                // Single range -- serve 206 with Content-Range
+                let (start, end) = ranges[0];
+                response.status = HttpStatus::PARTIAL_CONTENT;
+                response.reason = HttpStatus::PARTIAL_CONTENT.reason().to_string();
+                response.set_header(
+                    "Content-Range",
+                    format!("bytes {}-{}/{}", start, end, content_length),
+                );
+                let sliced = body[start..=end].to_vec();
+                response.set_header("Content-Length", sliced.len().to_string());
+                resp_body = Some(sliced);
+            }
+            Some(_ranges) => {
+                // Multiple ranges -- for simplicity, only support single range.
+                // Serve the full response as-is (valid per RFC 7233 section 4.1).
+            }
+            None => {
+                // Range is not satisfiable
+                response.status = HttpStatus::RANGE_NOT_SATISFIABLE;
+                response.reason = HttpStatus::RANGE_NOT_SATISFIABLE.reason().to_string();
+                response.set_header("Content-Range", format!("bytes */{}", content_length));
+                response.unset_header("Content-Length");
+                resp_body = None;
             }
         }
     }
@@ -1191,14 +1190,13 @@ fn state_deliver(
     }
 
     // Apply delivery filters (e.g., gzip response for client)
-    if ctx.do_gzip {
-        if let Some(ref body) = resp_body {
-            if let Ok(compressed) = rv_filter::compress_gzip(body) {
-                response.set_header("Content-Encoding", "gzip");
-                response.set_header("Content-Length", compressed.len().to_string());
-                resp_body = Some(compressed);
-            }
-        }
+    if ctx.do_gzip
+        && let Some(ref body) = resp_body
+        && let Ok(compressed) = rv_filter::compress_gzip(body)
+    {
+        response.set_header("Content-Encoding", "gzip");
+        response.set_header("Content-Length", compressed.len().to_string());
+        resp_body = Some(compressed);
     }
 
     ctx.response = Some(response);
@@ -1630,7 +1628,7 @@ backend api {
                     let mut extra_headers = String::new();
                     for h in &req_headers {
                         if h.to_lowercase().starts_with("x-backend-echo:") {
-                            let val = h.splitn(2, ':').nth(1).unwrap_or("").trim();
+                            let val = h.split_once(':').map(|x| x.1).unwrap_or("").trim();
                             extra_headers.push_str(&format!("X-Backend-Echoed: {val}\r\n"));
                         }
                     }

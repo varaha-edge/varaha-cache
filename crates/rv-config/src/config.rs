@@ -319,22 +319,14 @@ impl Default for ProbeConfig {
 // ACL
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct AclConfig {
     /// Ordered list of ACL entries.
     pub entries: Vec<AclEntry>,
 }
 
-impl Default for AclConfig {
-    fn default() -> Self {
-        Self {
-            entries: Vec::new(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct AclEntry {
     /// IP address or CIDR prefix.
@@ -347,21 +339,11 @@ pub struct AclEntry {
     pub negate: bool,
 }
 
-impl Default for AclEntry {
-    fn default() -> Self {
-        Self {
-            addr: String::new(),
-            mask: None,
-            negate: false,
-        }
-    }
-}
-
 // ---------------------------------------------------------------------------
 // VCL
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct VclConfig {
     /// Path to a VCL file on disk.
@@ -369,15 +351,6 @@ pub struct VclConfig {
 
     /// Inline VCL source code.
     pub inline: Option<String>,
-}
-
-impl Default for VclConfig {
-    fn default() -> Self {
-        Self {
-            file: None,
-            inline: None,
-        }
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -430,7 +403,7 @@ impl Default for LogConfig {
 // Feature Flags
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct FeatureFlags {
     /// Skip XML validity checks during ESI processing.
@@ -453,20 +426,6 @@ pub struct FeatureFlags {
 
     /// Enable HTTP/2 support.
     pub http2: bool,
-}
-
-impl Default for FeatureFlags {
-    fn default() -> Self {
-        Self {
-            esi_disable_xml_check: false,
-            esi_ignore_https: false,
-            esi_ignore_other_elements: false,
-            short_panic: false,
-            wait_silo: false,
-            no_coredump: false,
-            http2: false,
-        }
-    }
 }
 
 #[cfg(test)]

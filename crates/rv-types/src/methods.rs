@@ -33,19 +33,8 @@ impl HttpMethod {
         }
     }
 
-    pub fn from_str(s: &str) -> Self {
-        match s {
-            "GET" => Self::Get,
-            "HEAD" => Self::Head,
-            "POST" => Self::Post,
-            "PUT" => Self::Put,
-            "DELETE" => Self::Delete,
-            "OPTIONS" => Self::Options,
-            "TRACE" => Self::Trace,
-            "PATCH" => Self::Patch,
-            "CONNECT" => Self::Connect,
-            _ => Self::Unknown,
-        }
+    pub fn parse_method(s: &str) -> Self {
+        s.parse().unwrap_or(Self::Unknown)
     }
 
     /// Whether this method is considered safe (no side effects).
@@ -64,6 +53,25 @@ impl HttpMethod {
     /// Whether this method may have a request body.
     pub fn may_have_body(&self) -> bool {
         matches!(self, Self::Post | Self::Put | Self::Patch)
+    }
+}
+
+impl std::str::FromStr for HttpMethod {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "GET" => Self::Get,
+            "HEAD" => Self::Head,
+            "POST" => Self::Post,
+            "PUT" => Self::Put,
+            "DELETE" => Self::Delete,
+            "OPTIONS" => Self::Options,
+            "TRACE" => Self::Trace,
+            "PATCH" => Self::Patch,
+            "CONNECT" => Self::Connect,
+            _ => Self::Unknown,
+        })
     }
 }
 

@@ -82,11 +82,7 @@ impl StreamingBody {
                 current_offset = chunk_end;
                 continue;
             }
-            let start_in_chunk = if offset > current_offset {
-                offset - current_offset
-            } else {
-                0
-            };
+            let start_in_chunk = offset.saturating_sub(current_offset);
             result.extend_from_slice(&chunk[start_in_chunk..]);
             current_offset = chunk_end;
         }

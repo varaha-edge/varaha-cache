@@ -260,7 +260,7 @@ mod tests {
     }
 
     impl TestBackend {
-        fn new(name: &str, addr: &str, healthy: bool) -> Arc<dyn Backend> {
+        fn create(name: &str, addr: &str, healthy: bool) -> Arc<dyn Backend> {
             Arc::new(Self {
                 name: name.to_string(),
                 addr: addr.parse().unwrap(),
@@ -288,8 +288,8 @@ mod tests {
     #[test]
     fn test_round_robin() {
         let dir = RoundRobinDirector::new("rr");
-        dir.add_backend(TestBackend::new("b1", "127.0.0.1:8001", true));
-        dir.add_backend(TestBackend::new("b2", "127.0.0.1:8002", true));
+        dir.add_backend(TestBackend::create("b1", "127.0.0.1:8001", true));
+        dir.add_backend(TestBackend::create("b2", "127.0.0.1:8002", true));
 
         let first = dir.resolve().unwrap();
         let second = dir.resolve().unwrap();
@@ -299,8 +299,8 @@ mod tests {
     #[test]
     fn test_round_robin_skips_sick() {
         let dir = RoundRobinDirector::new("rr");
-        dir.add_backend(TestBackend::new("b1", "127.0.0.1:8001", false));
-        dir.add_backend(TestBackend::new("b2", "127.0.0.1:8002", true));
+        dir.add_backend(TestBackend::create("b1", "127.0.0.1:8001", false));
+        dir.add_backend(TestBackend::create("b2", "127.0.0.1:8002", true));
 
         let resolved = dir.resolve().unwrap();
         assert_eq!(resolved.name(), "b2");
@@ -309,8 +309,8 @@ mod tests {
     #[test]
     fn test_fallback_priority() {
         let dir = FallbackDirector::new("fb");
-        dir.add_backend(TestBackend::new("primary", "127.0.0.1:8001", true));
-        dir.add_backend(TestBackend::new("secondary", "127.0.0.1:8002", true));
+        dir.add_backend(TestBackend::create("primary", "127.0.0.1:8001", true));
+        dir.add_backend(TestBackend::create("secondary", "127.0.0.1:8002", true));
 
         let resolved = dir.resolve().unwrap();
         assert_eq!(resolved.name(), "primary");
@@ -319,8 +319,8 @@ mod tests {
     #[test]
     fn test_fallback_to_secondary() {
         let dir = FallbackDirector::new("fb");
-        dir.add_backend(TestBackend::new("primary", "127.0.0.1:8001", false));
-        dir.add_backend(TestBackend::new("secondary", "127.0.0.1:8002", true));
+        dir.add_backend(TestBackend::create("primary", "127.0.0.1:8001", false));
+        dir.add_backend(TestBackend::create("secondary", "127.0.0.1:8002", true));
 
         let resolved = dir.resolve().unwrap();
         assert_eq!(resolved.name(), "secondary");
@@ -329,7 +329,7 @@ mod tests {
     #[test]
     fn test_no_healthy_backend() {
         let dir = RoundRobinDirector::new("rr");
-        dir.add_backend(TestBackend::new("b1", "127.0.0.1:8001", false));
+        dir.add_backend(TestBackend::create("b1", "127.0.0.1:8001", false));
 
         assert!(dir.resolve().is_none());
     }

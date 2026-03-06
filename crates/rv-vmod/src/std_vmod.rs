@@ -307,8 +307,8 @@ mod tests {
     #[test]
     fn test_real_parse() {
         let f = StdReal;
-        let result = f.call(&[VclValue::String("3.14".to_string())]).unwrap();
-        assert_eq!(result.to_real(), 3.14);
+        let result = f.call(&[VclValue::String("3.15".to_string())]).unwrap();
+        assert_eq!(result.to_real(), 3.15);
 
         // Fallback
         let result = f
@@ -409,7 +409,7 @@ mod tests {
         let f = StdRandom;
         let result = f.call(&[VclValue::Real(0.0), VclValue::Real(1.0)]).unwrap();
         let val = result.to_real();
-        assert!(val >= 0.0 && val < 1.0, "random value {val} out of range");
+        assert!((0.0..1.0).contains(&val), "random value {val} out of range");
     }
 
     #[test]

@@ -145,7 +145,7 @@ mod tests {
     fn test_string_conversion() {
         assert_eq!(VclValue::String("hello".into()).to_string_value(), "hello");
         assert_eq!(VclValue::Int(42).to_string_value(), "42");
-        assert_eq!(VclValue::Real(3.14).to_string_value(), "3.14");
+        assert_eq!(VclValue::Real(3.15).to_string_value(), "3.15");
         assert_eq!(VclValue::Bool(true).to_string_value(), "true");
         assert_eq!(VclValue::Bool(false).to_string_value(), "false");
         assert_eq!(
@@ -178,8 +178,8 @@ mod tests {
         assert_eq!(VclValue::Int(10).try_to_real().unwrap(), 10.0);
         assert_eq!(VclValue::Bool(true).try_to_real().unwrap(), 1.0);
         assert_eq!(
-            VclValue::String("3.14".to_string()).try_to_real().unwrap(),
-            3.14
+            VclValue::String("3.15".to_string()).try_to_real().unwrap(),
+            3.15
         );
         assert_eq!(VclValue::Duration(2.5).try_to_real().unwrap(), 2.5);
         assert!(

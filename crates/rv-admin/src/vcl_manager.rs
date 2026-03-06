@@ -93,12 +93,12 @@ impl VclManager {
         let mut programs = self.programs.lock().unwrap();
 
         // Do not allow overwriting the currently active program.
-        if let Some(existing) = programs.get(name) {
-            if existing.state == VclProgramState::Active {
-                return Err(format!(
-                    "VCL program '{name}' is currently active; discard or use a different name"
-                ));
-            }
+        if let Some(existing) = programs.get(name)
+            && existing.state == VclProgramState::Active
+        {
+            return Err(format!(
+                "VCL program '{name}' is currently active; discard or use a different name"
+            ));
         }
 
         programs.insert(name.to_string(), entry);
@@ -125,12 +125,11 @@ impl VclManager {
         let interpreter = Arc::clone(&target.interpreter);
 
         // Deactivate the current active program.
-        if let Some(prev_name) = active_name.as_ref() {
-            if let Some(prev) = programs.get_mut(prev_name) {
-                if prev.state == VclProgramState::Active {
-                    prev.state = VclProgramState::Available;
-                }
-            }
+        if let Some(prev_name) = active_name.as_ref()
+            && let Some(prev) = programs.get_mut(prev_name)
+            && prev.state == VclProgramState::Active
+        {
+            prev.state = VclProgramState::Available;
         }
 
         // Activate the new program.

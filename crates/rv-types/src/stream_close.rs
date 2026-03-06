@@ -99,15 +99,15 @@ impl StreamClose {
 
     /// Whether this close reason represents an error condition.
     pub fn is_error(&self) -> bool {
-        match self {
-            Self::RemClose => false,
-            Self::ReqClose => false,
-            Self::RxCloseIdle => false,
-            Self::TxPipe => false,
-            Self::TxEof => false,
-            Self::RespClose => false,
-            _ => true,
-        }
+        !matches!(
+            self,
+            Self::RemClose
+                | Self::ReqClose
+                | Self::RxCloseIdle
+                | Self::TxPipe
+                | Self::TxEof
+                | Self::RespClose
+        )
     }
 }
 

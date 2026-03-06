@@ -14,7 +14,7 @@ use crate::loader::load_config;
 #[derive(Debug, Clone)]
 pub enum ConfigEvent {
     /// The main configuration file was re-read and parsed successfully.
-    ConfigReloaded(CacheConfig),
+    ConfigReloaded(Box<CacheConfig>),
 
     /// A VCL source file was reloaded. The payload is the new VCL source.
     VclReloaded(String),
@@ -53,7 +53,7 @@ impl ConfigWatcher {
                         match load_config(&path_clone) {
                             Ok(config) => {
                                 info!(path = %path_clone.display(), "configuration reloaded");
-                                let _ = tx_clone.send(ConfigEvent::ConfigReloaded(config));
+                                let _ = tx_clone.send(ConfigEvent::ConfigReloaded(Box::new(config)));
                             }
                             Err(e) => {
                                 error!(path = %path_clone.display(), error = %e, "failed to reload config");

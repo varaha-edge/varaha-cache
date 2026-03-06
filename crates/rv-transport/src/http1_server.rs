@@ -28,9 +28,11 @@ pub async fn read_request(
         )));
     }
 
-    let method = HttpMethod::from_str(parts[0]);
+    let method = HttpMethod::parse_method(parts[0]);
     let url = parts[1].to_string();
-    let version = HttpVersion::from_str(parts[2]).ok_or_else(|| TransportError::InvalidVersion)?;
+    let version = parts[2]
+        .parse()
+        .map_err(|_| TransportError::InvalidVersion)?;
 
     let mut msg = HttpMessage::new_request(method, url, version);
 
@@ -175,16 +177,15 @@ pub async fn write_response(
     }
 
     // Add Content-Length if body is present and header not already set
-    if let Some(body) = body {
-        if response.get_header("Content-Length").is_none()
-            && response.get_header("Transfer-Encoding").is_none()
-        {
-            let cl = format!("Content-Length: {}\r\n", body.len());
-            stream
-                .write_all(cl.as_bytes())
-                .await
-                .map_err(TransportError::Io)?;
-        }
+    if let Some(body) = body
+        && response.get_header("Content-Length").is_none()
+        && response.get_header("Transfer-Encoding").is_none()
+    {
+        let cl = format!("Content-Length: {}\r\n", body.len());
+        stream
+            .write_all(cl.as_bytes())
+            .await
+            .map_err(TransportError::Io)?;
     }
 
     // End of headers

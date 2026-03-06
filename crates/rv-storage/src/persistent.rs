@@ -547,10 +547,7 @@ impl Stevedore for PersistentStevedore {
     }
 
     fn free_obj(&self, oc: &mut ObjCore) {
-        let slab_idx = {
-            let idx = self.digest_index.lock().remove(&oc.digest);
-            idx
-        };
+        let slab_idx = { self.digest_index.lock().remove(&oc.digest) };
 
         if let Some(idx) = slab_idx {
             let mut allocs = self.allocations.lock();

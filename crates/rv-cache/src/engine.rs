@@ -204,12 +204,11 @@ impl CacheEngine {
             for oc in variants {
                 // If request headers were supplied and this variant carries
                 // Vary data, verify the request matches before considering it.
-                if let Some(req_hdrs) = request_headers {
-                    if let Some(vary_data) = oc.get_attr(ObjAttr::Vary) {
-                        if !VaryMatcher::matches(&vary_data, req_hdrs) {
-                            continue;
-                        }
-                    }
+                if let Some(req_hdrs) = request_headers
+                    && let Some(vary_data) = oc.get_attr(ObjAttr::Vary)
+                    && !VaryMatcher::matches(&vary_data, req_hdrs)
+                {
+                    continue;
                 }
 
                 let result = evaluate_object(oc, now);
@@ -293,7 +292,7 @@ impl CacheEngine {
         // Evict oldest objects if we are at or above capacity
         self.enforce_capacity();
 
-        let mut oc = ObjCore::new(digest.clone());
+        let mut oc = ObjCore::new(digest);
 
         // Allocate storage
         self.storage
@@ -324,7 +323,7 @@ impl CacheEngine {
 
         // Push to the variant list (do not replace the whole entry)
         self.objects
-            .entry(digest.clone())
+            .entry(digest)
             .or_default()
             .push(Arc::clone(&oc));
 
@@ -343,7 +342,7 @@ impl CacheEngine {
         self.log.log(
             LogTag::ObjHeader,
             Vxid(0),
-            &format!("inserted object, ttl={}", ttl_info.ttl),
+            format!("inserted object, ttl={}", ttl_info.ttl),
         );
 
         Ok(oc)
@@ -367,7 +366,7 @@ impl CacheEngine {
             // Free storage for each variant
             if let Some((_, variants)) = removed {
                 for _oc in &variants {
-                    self.storage.free_obj(&mut ObjCore::new(digest.clone()));
+                    self.storage.free_obj(&mut ObjCore::new(*digest));
                 }
             }
 
@@ -381,7 +380,7 @@ impl CacheEngine {
 
     /// Purge an object from the cache by digest.
     pub fn purge(&self, digest: &Digest) {
-        let new_oh = Arc::new(ObjHead::new(digest.clone()));
+        let new_oh = Arc::new(ObjHead::new(*digest));
         let (oh, _) = self.hash.lookup(digest, new_oh);
         self.hash.deref(&oh);
         // Remove from the objects map and LRU tracker
@@ -408,7 +407,7 @@ impl CacheEngine {
             self.lru.remove(&oc.digest);
             // Remove from the objects map
             self.objects.remove(&oc.digest);
-            self.storage.free_obj(&mut ObjCore::new(oc.digest.clone()));
+            self.storage.free_obj(&mut ObjCore::new(oc.digest));
         }
 
         if count > 0 {
@@ -470,7 +469,7 @@ impl CacheEngine {
             if let Some(victim) = self.lru.evict_oldest() {
                 if let Some((_, variants)) = self.objects.remove(&victim) {
                     for _oc in &variants {
-                        self.storage.free_obj(&mut ObjCore::new(victim.clone()));
+                        self.storage.free_obj(&mut ObjCore::new(victim));
                     }
                     self.stats
                         .evictions
@@ -580,7 +579,7 @@ mod tests {
         let digest = test_digest(10);
 
         engine
-            .insert(digest.clone(), b"plain body", TtlInfo::default(), None)
+            .insert(digest, b"plain body", TtlInfo::default(), None)
             .unwrap();
 
         // Lookup without request headers
@@ -617,7 +616,7 @@ mod tests {
         // Insert both variants under the same digest
         engine
             .insert(
-                digest.clone(),
+                digest,
                 b"gzip-compressed body",
                 TtlInfo::default(),
                 Some(gzip_vary),
@@ -625,7 +624,7 @@ mod tests {
             .unwrap();
         engine
             .insert(
-                digest.clone(),
+                digest,
                 b"brotli-compressed body",
                 TtlInfo::default(),
                 Some(br_vary),
@@ -672,7 +671,7 @@ mod tests {
 
         engine
             .insert(
-                digest.clone(),
+                digest,
                 b"uncacheable body",
                 TtlInfo::default(),
                 Some(vary_star),
@@ -709,7 +708,7 @@ mod tests {
 
         engine
             .insert(
-                digest.clone(),
+                digest,
                 b"first variant",
                 TtlInfo::default(),
                 Some(gzip_vary),
@@ -740,10 +739,10 @@ mod tests {
         let br_vary = VaryMatcher::build_vary_data(Some("Accept-Encoding"), &br_req).unwrap();
 
         engine
-            .insert(digest.clone(), b"gzip", TtlInfo::default(), Some(gzip_vary))
+            .insert(digest, b"gzip", TtlInfo::default(), Some(gzip_vary))
             .unwrap();
         engine
-            .insert(digest.clone(), b"br", TtlInfo::default(), Some(br_vary))
+            .insert(digest, b"br", TtlInfo::default(), Some(br_vary))
             .unwrap();
 
         // Both inserts counted
@@ -918,7 +917,7 @@ mod tests {
         let digest = test_digest(1);
 
         engine
-            .insert(digest.clone(), b"data", TtlInfo::default(), None)
+            .insert(digest, b"data", TtlInfo::default(), None)
             .unwrap();
 
         assert_eq!(engine.lru().len(), 1);
@@ -945,7 +944,7 @@ mod tests {
         let digest = test_digest(1);
 
         engine
-            .insert(digest.clone(), b"data", TtlInfo::default(), None)
+            .insert(digest, b"data", TtlInfo::default(), None)
             .unwrap();
         assert_eq!(engine.lru().len(), 1);
 

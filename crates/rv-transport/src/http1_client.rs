@@ -117,7 +117,7 @@ pub async fn send_backend_request(
         )));
     }
 
-    let version = HttpVersion::from_str(parts[0]).unwrap_or(HttpVersion::Http11);
+    let version = parts[0].parse().unwrap_or(HttpVersion::Http11);
     let status_code: u16 = parts[1]
         .parse()
         .map_err(|e| TransportError::HttpParse(format!("invalid status code: {e}")))?;
@@ -227,13 +227,14 @@ pub async fn send_backend_request(
 
     // Return the stream to the pool when the response allows keep-alive
     // and we read the body with a deterministic framing method.
-    if keep_alive && body_length_known {
-        if let Some(p) = pool {
-            // Recover the TcpStream from the BufReader.  We only do this
-            // when no buffered data remains (body fully consumed above).
-            let inner = reader.into_inner();
-            p.put(addr, inner);
-        }
+    if keep_alive
+        && body_length_known
+        && let Some(p) = pool
+    {
+        // Recover the TcpStream from the BufReader.  We only do this
+        // when no buffered data remains (body fully consumed above).
+        let inner = reader.into_inner();
+        p.put(addr, inner);
     }
 
     Ok((response, resp_body))

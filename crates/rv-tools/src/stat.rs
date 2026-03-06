@@ -6,7 +6,7 @@ use rv_admin::protocol::{CliResponse, CliStatus, decode_response};
 
 /// Statistics viewer tool - displays cache performance counters.
 /// Equivalent to varnishstat in the C codebase.
-
+///
 /// A client that connects to the admin port and retrieves status information
 /// using the CLI wire protocol.
 pub struct StatClient {
@@ -20,7 +20,7 @@ impl StatClient {
     /// reads and discards the initial banner (or auth challenge) sent by
     /// the server.
     pub fn connect(addr: SocketAddr) -> Result<Self, anyhow::Error> {
-        let stream = TcpStream::connect_timeout(&addr.into(), Duration::from_secs(5))?;
+        let stream = TcpStream::connect_timeout(&addr, Duration::from_secs(5))?;
         stream.set_read_timeout(Some(Duration::from_secs(5)))?;
         stream.set_write_timeout(Some(Duration::from_secs(5)))?;
 
@@ -38,7 +38,7 @@ impl StatClient {
     /// The server sends a challenge; the client computes the SHA-256
     /// response using the shared secret and sends it back.
     pub fn connect_with_auth(addr: SocketAddr, secret: &str) -> Result<Self, anyhow::Error> {
-        let stream = TcpStream::connect_timeout(&addr.into(), Duration::from_secs(5))?;
+        let stream = TcpStream::connect_timeout(&addr, Duration::from_secs(5))?;
         stream.set_read_timeout(Some(Duration::from_secs(5)))?;
         stream.set_write_timeout(Some(Duration::from_secs(5)))?;
 
