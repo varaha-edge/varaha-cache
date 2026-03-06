@@ -93,12 +93,12 @@ impl VclManager {
         let mut programs = self.programs.lock().unwrap();
 
         // Do not allow overwriting the currently active program.
-        if let Some(existing) = programs.get(name)
-            && existing.state == VclProgramState::Active
-        {
-            return Err(format!(
-                "VCL program '{name}' is currently active; discard or use a different name"
-            ));
+        if let Some(existing) = programs.get(name) {
+            if existing.state == VclProgramState::Active {
+                return Err(format!(
+                    "VCL program '{name}' is currently active; discard or use a different name"
+                ));
+            }
         }
 
         programs.insert(name.to_string(), entry);

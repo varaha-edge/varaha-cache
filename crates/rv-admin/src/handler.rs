@@ -382,10 +382,10 @@ fn handle_log_stream(ctx: &AdminContext, tags_filter: Option<&str>) -> CliRespon
 
     let mut lines = Vec::new();
     for rec in &records {
-        if let Some(ref names) = tag_names
-            && !names.iter().any(|n| *n == rec.tag.name())
-        {
-            continue;
+        if let Some(ref names) = tag_names {
+            if !names.iter().any(|n| *n == rec.tag.name()) {
+                continue;
+            }
         }
         lines.push(format!("{}", rec));
     }
