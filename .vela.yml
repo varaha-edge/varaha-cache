@@ -38,9 +38,12 @@ steps:
     ruleset:
       branch: [main]
       event: [push]
+    secrets: [harbor_username, harbor_password]
     parameters:
       registry: registry.intra.varaha.io
       repo: registry.intra.varaha.io/varaha/varaha-cache
+      username: ${HARBOR_USERNAME}
+      password: ${HARBOR_PASSWORD}
       tags:
         - latest
         - "build-${VELA_BUILD_NUMBER}"
