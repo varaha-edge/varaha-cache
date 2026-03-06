@@ -52,7 +52,7 @@ steps:
       event: [push]
     parameters:
       registry: registry.intra.varaha.io
-      repo: registry.intra.varaha.io/varaha/varaha-cache
+      repo: registry.intra.varaha.io/prioarc-apps/varaha-cache
       tags:
         - latest
         - "build-${VELA_BUILD_NUMBER}"
