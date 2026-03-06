@@ -9,3 +9,6 @@ description = "Hash trait and implementations (classic, critbit, simple list)"
 rv-types = { workspace = true }
 parking_lot = { workspace = true }
 thiserror = { workspace = true }
+
+[lints]
+workspace = true

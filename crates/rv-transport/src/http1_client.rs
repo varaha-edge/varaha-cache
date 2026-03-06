@@ -227,14 +227,13 @@ pub async fn send_backend_request(
 
     // Return the stream to the pool when the response allows keep-alive
     // and we read the body with a deterministic framing method.
-    if keep_alive
-        && body_length_known
-        && let Some(p) = pool
-    {
-        // Recover the TcpStream from the BufReader.  We only do this
-        // when no buffered data remains (body fully consumed above).
-        let inner = reader.into_inner();
-        p.put(addr, inner);
+    if keep_alive && body_length_known {
+        if let Some(p) = pool {
+            // Recover the TcpStream from the BufReader.  We only do this
+            // when no buffered data remains (body fully consumed above).
+            let inner = reader.into_inner();
+            p.put(addr, inner);
+        }
     }
 
     Ok((response, resp_body))

@@ -10,3 +10,6 @@ rv-types = { workspace = true }
 parking_lot = { workspace = true }
 crossbeam = { workspace = true }
 tracing = { workspace = true }
+
+[lints]
+workspace = true

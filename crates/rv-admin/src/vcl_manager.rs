@@ -125,11 +125,12 @@ impl VclManager {
         let interpreter = Arc::clone(&target.interpreter);
 
         // Deactivate the current active program.
-        if let Some(prev_name) = active_name.as_ref()
-            && let Some(prev) = programs.get_mut(prev_name)
-            && prev.state == VclProgramState::Active
-        {
-            prev.state = VclProgramState::Available;
+        if let Some(prev_name) = active_name.as_ref() {
+            if let Some(prev) = programs.get_mut(prev_name) {
+                if prev.state == VclProgramState::Active {
+                    prev.state = VclProgramState::Available;
+                }
+            }
         }
 
         // Activate the new program.

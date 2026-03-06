@@ -46,10 +46,10 @@ pub fn parse_args() -> CliArgs {
         match args[i].as_str() {
             "-a" => {
                 i += 1;
-                if i < args.len()
-                    && let Ok(addr) = args[i].parse()
-                {
-                    cli.listen_addr = addr;
+                if i < args.len() {
+                    if let Ok(addr) = args[i].parse() {
+                        cli.listen_addr = addr;
+                    }
                 }
             }
             "-b" => {
@@ -78,10 +78,10 @@ pub fn parse_args() -> CliArgs {
             }
             "-T" => {
                 i += 1;
-                if i < args.len()
-                    && let Ok(addr) = args[i].parse()
-                {
-                    cli.admin_addr = addr;
+                if i < args.len() {
+                    if let Ok(addr) = args[i].parse() {
+                        cli.admin_addr = addr;
+                    }
                 }
             }
             "-n" => {

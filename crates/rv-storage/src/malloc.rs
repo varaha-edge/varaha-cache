@@ -161,11 +161,11 @@ impl Stevedore for MallocStevedore {
         let new_cap = entry.body.capacity();
 
         // Track any additional heap allocation the Vec performed.
-        if new_cap > old_cap
-            && let Err(e) = self.try_reserve(new_cap - old_cap)
-        {
-            warn!(digest = %oc.digest, "extend caused over-allocation: {e}");
-            // We still keep the data -- the limit is soft for extend.
+        if new_cap > old_cap {
+            if let Err(e) = self.try_reserve(new_cap - old_cap) {
+                warn!(digest = %oc.digest, "extend caused over-allocation: {e}");
+                // We still keep the data -- the limit is soft for extend.
+            }
         }
 
         Ok(())

@@ -18,6 +18,9 @@ members = [
     "crates/rv-tools",
 ]
 
+[workspace.lints.clippy]
+collapsible_if = "allow"
+
 [workspace.package]
 version = "0.1.0"
 edition = "2024"

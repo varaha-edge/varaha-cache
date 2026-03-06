@@ -325,15 +325,15 @@ impl VclInterpreter {
             // return(synth(404, "Not Found")) -- function-call style
             Expr::FunctionCall { name, args } => match name.as_str() {
                 "synth" => {
-                    if let Some(status_expr) = args.first()
-                        && let Ok(val) = self.eval_expr(status_expr, ctx)
-                    {
-                        ctx.synth_status = Some(val.to_int() as u16);
+                    if let Some(status_expr) = args.first() {
+                        if let Ok(val) = self.eval_expr(status_expr, ctx) {
+                            ctx.synth_status = Some(val.to_int() as u16);
+                        }
                     }
-                    if let Some(reason_expr) = args.get(1)
-                        && let Ok(val) = self.eval_expr(reason_expr, ctx)
-                    {
-                        ctx.synth_body = Some(val.to_string_value());
+                    if let Some(reason_expr) = args.get(1) {
+                        if let Ok(val) = self.eval_expr(reason_expr, ctx) {
+                            ctx.synth_body = Some(val.to_string_value());
+                        }
                     }
                     ControlFlow::Return(VclAction::Synth)
                 }
@@ -747,12 +747,12 @@ impl VclInterpreter {
             }
             _ => {
                 // Try function resolver for dotted names (e.g., "std.log")
-                if let Some(pos) = name.find('.')
-                    && let Some(ref resolver) = self.resolver
-                {
-                    let module = &name[..pos];
-                    let function = &name[pos + 1..];
-                    return resolver.call(module, function, args);
+                if let Some(pos) = name.find('.') {
+                    if let Some(ref resolver) = self.resolver {
+                        let module = &name[..pos];
+                        let function = &name[pos + 1..];
+                        return resolver.call(module, function, args);
+                    }
                 }
                 // Unknown function - return void
                 Ok(VclValue::Void)

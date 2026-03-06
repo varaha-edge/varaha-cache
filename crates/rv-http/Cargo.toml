@@ -10,3 +10,6 @@ rv-types = { workspace = true }
 bytes = { workspace = true }
 thiserror = { workspace = true }
 regex = { workspace = true }
+
+[lints]
+workspace = true

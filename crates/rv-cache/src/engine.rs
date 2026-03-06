@@ -204,11 +204,12 @@ impl CacheEngine {
             for oc in variants {
                 // If request headers were supplied and this variant carries
                 // Vary data, verify the request matches before considering it.
-                if let Some(req_hdrs) = request_headers
-                    && let Some(vary_data) = oc.get_attr(ObjAttr::Vary)
-                    && !VaryMatcher::matches(&vary_data, req_hdrs)
-                {
-                    continue;
+                if let Some(req_hdrs) = request_headers {
+                    if let Some(vary_data) = oc.get_attr(ObjAttr::Vary) {
+                        if !VaryMatcher::matches(&vary_data, req_hdrs) {
+                            continue;
+                        }
+                    }
                 }
 
                 let result = evaluate_object(oc, now);

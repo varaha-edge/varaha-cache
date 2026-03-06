@@ -107,10 +107,10 @@ impl TtlCalculation {
         }
 
         // Parse Date header for t_origin
-        if let Some(date_str) = resp.get_header("Date")
-            && let Some(date) = parse_http_date(date_str)
-        {
-            result.t_origin = date;
+        if let Some(date_str) = resp.get_header("Date") {
+            if let Some(date) = parse_http_date(date_str) {
+                result.t_origin = date;
+            }
         }
 
         // Parse Age header
@@ -132,12 +132,12 @@ impl TtlCalculation {
         }
 
         // Expires header
-        if let Some(expires_str) = resp.get_header("Expires")
-            && let Some(expires) = parse_http_date(expires_str)
-        {
-            let ttl_secs = expires.as_secs() - result.t_origin.as_secs();
-            result.ttl = VtimDur::from_secs(ttl_secs);
-            return result;
+        if let Some(expires_str) = resp.get_header("Expires") {
+            if let Some(expires) = parse_http_date(expires_str) {
+                let ttl_secs = expires.as_secs() - result.t_origin.as_secs();
+                result.ttl = VtimDur::from_secs(ttl_secs);
+                return result;
+            }
         }
 
         // Check for no-cache (cacheable but must revalidate)
@@ -174,12 +174,14 @@ pub fn evaluate_conditional(
     }
 
     // If-Modified-Since
-    if let Some(ims) = req.get_header("If-Modified-Since")
-        && let Some(lm) = resp_last_modified
-        && let (Some(ims_time), Some(lm_time)) = (parse_http_date(ims), parse_http_date(lm))
-        && lm_time.as_secs() <= ims_time.as_secs()
-    {
-        return true;
+    if let Some(ims) = req.get_header("If-Modified-Since") {
+        if let Some(lm) = resp_last_modified {
+            if let (Some(ims_time), Some(lm_time)) = (parse_http_date(ims), parse_http_date(lm)) {
+                if lm_time.as_secs() <= ims_time.as_secs() {
+                    return true;
+                }
+            }
+        }
     }
 
     false

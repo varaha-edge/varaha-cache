@@ -21,3 +21,6 @@ arc-swap = { workspace = true }
 [dev-dependencies]
 rv-hash = { workspace = true }
 rv-storage = { workspace = true }
+
+[lints]
+workspace = true
