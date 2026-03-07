@@ -10,7 +10,7 @@ async fn main() -> anyhow::Result<()> {
     let otel_endpoint = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT")
         .unwrap_or_else(|_| "https://otel.intra.varaha.io".to_string());
 
-    let provider = telemetry::init(&otel_endpoint);
+    let providers = telemetry::init(&otel_endpoint);
 
     info!("varaha-cache 0.1.0 starting");
 
@@ -20,11 +20,17 @@ async fn main() -> anyhow::Result<()> {
     // Initialize runtime
     let runtime = runtime::ServerRuntime::new(&mut args)?;
 
+    // Register cache metrics now that the engine exists
+    telemetry::register_cache_metrics(
+        &providers.meter,
+        runtime.cache.stats_ref().clone(),
+    );
+
     // Run server
     runtime.run(&args).await?;
 
-    // Flush pending spans on shutdown
-    provider.shutdown().ok();
+    // Flush all pending telemetry on shutdown
+    providers.shutdown();
 
     Ok(())
 }
