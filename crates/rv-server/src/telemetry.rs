@@ -83,9 +83,19 @@ pub fn init(otel_endpoint: &str) -> TelemetryProviders {
         opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge::new(&logger_provider);
 
     // --- Compose tracing subscriber ---
+    // Suppress noisy OTEL SDK export errors (e.g. when endpoint doesn't support logs/metrics).
+    // Append opentelemetry_sdk=off unless the user explicitly set it in RUST_LOG.
+    let base_filter = std::env::var("RUST_LOG").unwrap_or_else(|_| "info".to_string());
+    let filter_str = if base_filter.contains("opentelemetry_sdk") {
+        base_filter
+    } else {
+        format!("{base_filter},opentelemetry_sdk=off")
+    };
+    let env_filter = tracing_subscriber::EnvFilter::new(filter_str);
+
     tracing_subscriber::registry()
         .with(tracing_subscriber::fmt::layer())
-        .with(tracing_subscriber::EnvFilter::from_default_env())
+        .with(env_filter)
         .with(OpenTelemetryLayer::new(tracer))
         .with(otel_log_layer)
         .init();
