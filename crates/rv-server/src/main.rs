@@ -8,7 +8,7 @@ use tracing::info;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let otel_endpoint = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT")
-        .unwrap_or_else(|_| "http://otel.intra.varaha.io:4317".to_string());
+        .unwrap_or_else(|_| "https://otel.intra.varaha.io".to_string());
 
     let provider = telemetry::init(&otel_endpoint);
 

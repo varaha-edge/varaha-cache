@@ -8,11 +8,14 @@ use tracing_subscriber::util::SubscriberInitExt;
 
 /// Initialize the tracing subscriber with an OpenTelemetry layer.
 ///
+/// Uses OTLP HTTP transport (not gRPC) so it works with Envoy Gateway
+/// which proxies `https://otel.intra.varaha.io` -> Alloy -> Tempo.
+///
 /// Returns the `SdkTracerProvider` which must be kept alive for the
 /// duration of the process and shut down before exit to flush pending spans.
 pub fn init(otel_endpoint: &str) -> SdkTracerProvider {
     let exporter = opentelemetry_otlp::SpanExporter::builder()
-        .with_tonic()
+        .with_http()
         .with_endpoint(otel_endpoint)
         .build()
         .expect("failed to create OTLP span exporter");

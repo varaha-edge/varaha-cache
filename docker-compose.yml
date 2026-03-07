@@ -6,7 +6,7 @@ services:
       - "6081:6081"   # HTTP client-facing
       - "6082:6082"   # Admin CLI
     environment:
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel.intra.varaha.io:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=https://otel.intra.varaha.io
       - OTEL_SERVICE_NAME=varaha-cache
       - RUST_LOG=info
     volumes:

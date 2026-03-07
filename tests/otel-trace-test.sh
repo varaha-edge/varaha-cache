@@ -139,7 +139,7 @@ echo "[1/6] Starting Jaeger (OTLP on :$JAEGER_OTLP_PORT, UI on :$JAEGER_UI_PORT)
 docker rm -f jaeger-otel-test 2>/dev/null || true
 sleep 1
 docker run -d --name jaeger-otel-test \
-    -p $JAEGER_OTLP_PORT:4317 \
+    -p $JAEGER_OTLP_PORT:4318 \
     -p $JAEGER_UI_PORT:16686 \
     jaegertracing/all-in-one:latest >/dev/null 2>&1
 
