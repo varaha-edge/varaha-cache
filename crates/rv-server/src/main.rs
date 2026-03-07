@@ -1,13 +1,16 @@
 mod cli;
 mod runtime;
+mod telemetry;
 mod vcl_loader;
 
 use tracing::info;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // Initialize logging
-    tracing_subscriber::fmt::init();
+    let otel_endpoint = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT")
+        .unwrap_or_else(|_| "http://otel.intra.varaha.io:4317".to_string());
+
+    let provider = telemetry::init(&otel_endpoint);
 
     info!("varaha-cache 0.1.0 starting");
 
@@ -19,6 +22,9 @@ async fn main() -> anyhow::Result<()> {
 
     // Run server
     runtime.run(&args).await?;
+
+    // Flush pending spans on shutdown
+    provider.shutdown().ok();
 
     Ok(())
 }

@@ -4,7 +4,7 @@ FROM rust:1.87-slim AS builder
 WORKDIR /build
 
 # Install build dependencies
-RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y pkg-config libssl-dev protobuf-compiler && rm -rf /var/lib/apt/lists/*
 
 # Copy workspace manifests first for layer caching
 COPY Cargo.toml Cargo.lock ./
@@ -27,6 +27,6 @@ COPY --from=builder /build/target/release/rv-stat /usr/local/bin/rv-stat
 # Copy example configs
 COPY examples/ /etc/varaha-cache/examples/
 
-EXPOSE 8080 8443 9001
+EXPOSE 6081 6082
 
 ENTRYPOINT ["varaha-cache"]

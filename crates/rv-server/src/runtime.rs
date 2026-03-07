@@ -281,6 +281,19 @@ async fn shutdown_signal() {
 }
 
 /// Handle an incoming HTTP request through the FSM-driven cache pipeline.
+#[tracing::instrument(
+    name = "handle_request",
+    skip_all,
+    fields(
+        otel.kind = "server",
+        http.method = %request.method,
+        http.url = %request.url,
+        http.status_code,
+        cache.hit,
+        vxid,
+        client.addr = %conn_info.client_addr,
+    )
+)]
 async fn handle_request(
     cache: Arc<CacheEngine>,
     request: HttpMessage,
@@ -291,6 +304,7 @@ async fn handle_request(
     log: Arc<LogWriter>,
 ) -> (HttpMessage, Option<Vec<u8>>) {
     let vxid = next_vxid();
+    tracing::Span::current().record("vxid", vxid.0);
     let start = Instant::now();
     let wall = VtimReal::now();
 
@@ -386,6 +400,7 @@ async fn handle_request(
         }
     }
 
+    let is_cache_hit = ctx.obj.is_some();
     let response = ctx.response.unwrap_or_else(|| {
         HttpMessage::new_response(HttpStatus::INTERNAL_SERVER_ERROR, HttpVersion::Http11)
     });
@@ -415,6 +430,9 @@ async fn handle_request(
         resp_body_len
     );
     log.log(LogTag::End, vxid, "");
+
+    tracing::Span::current().record("http.status_code", response.status.code());
+    tracing::Span::current().record("cache.hit", is_cache_hit);
 
     (response, resp_body)
 }
@@ -466,6 +484,7 @@ fn state_recv(
 }
 
 /// Lookup state: compute digest, lookup cache, run vcl_hit or vcl_miss.
+#[tracing::instrument(name = "cache_lookup", skip_all, fields(cache.result))]
 fn state_lookup(
     ctx: &mut RequestContext,
     cache: &Arc<CacheEngine>,
@@ -483,6 +502,7 @@ fn state_lookup(
     // Cache lookup
     match cache.lookup(&digest, None) {
         CacheLookupResult::Hit(oc) => {
+            tracing::Span::current().record("cache.result", "hit");
             rv_log::rv_log!(log, LogTag::Hit, ctx.vxid, "{}", oc.hits);
             rv_log::rv_log!(
                 log,
@@ -536,19 +556,23 @@ fn state_lookup(
             }
         }
         CacheLookupResult::Grace(oc) => {
+            tracing::Span::current().record("cache.result", "grace");
             rv_log::rv_log!(log, LogTag::Hit, ctx.vxid, "{} (grace)", oc.hits);
             ctx.obj = Some(oc);
             ctx.vcl_action = Some(VclAction::Deliver);
         }
         CacheLookupResult::HitForPass => {
+            tracing::Span::current().record("cache.result", "hit_for_pass");
             log.log(LogTag::HitPass, ctx.vxid, "");
             ctx.vcl_action = Some(VclAction::Pass);
         }
         CacheLookupResult::Busy => {
+            tracing::Span::current().record("cache.result", "busy");
             log.log(LogTag::Miss, ctx.vxid, "busy");
             ctx.vcl_action = None; // Default: miss -> fetch
         }
         CacheLookupResult::Miss => {
+            tracing::Span::current().record("cache.result", "miss");
             log.log(LogTag::Miss, ctx.vxid, "");
 
             if let Some(vcl) = vcl {
@@ -653,6 +677,15 @@ fn run_vcl_miss(
 }
 
 /// Fetch state: build bereq, fetch from backend, run vcl_backend_fetch/response, cache insert.
+#[tracing::instrument(
+    name = "backend_fetch",
+    skip_all,
+    fields(
+        backend.addr,
+        http.status_code,
+        duration_ms,
+    )
+)]
 async fn state_fetch(
     ctx: &mut RequestContext,
     cache: &Arc<CacheEngine>,
@@ -672,6 +705,7 @@ async fn state_fetch(
         }
     };
 
+    tracing::Span::current().record("backend.addr", tracing::field::display(&addr));
     rv_log::rv_log!(log, LogTag::Backend, ctx.vxid, "{}", addr);
 
     // Build bereq from client request
@@ -732,6 +766,8 @@ async fn state_fetch(
     match rv_transport::http1_client::send_backend_request(addr, &bereq, None, None).await {
         Ok((mut beresp, beresp_body)) => {
             let fetch_elapsed = fetch_start.elapsed().as_secs_f64();
+            tracing::Span::current().record("http.status_code", beresp.status.code());
+            tracing::Span::current().record("duration_ms", (fetch_elapsed * 1000.0) as u64);
             rv_log::rv_log!(
                 log,
                 LogTag::Timestamp,
