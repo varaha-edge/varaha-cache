@@ -25,6 +25,7 @@ tokio-util = { workspace = true }
 [dev-dependencies]
 ring = { workspace = true }
 base64 = { workspace = true }
+rustls = { workspace = true, features = ["ring"] }
 
 [lints]
 workspace = true

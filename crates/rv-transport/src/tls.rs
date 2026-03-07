@@ -204,6 +204,9 @@ mod tests {
 
     #[test]
     fn valid_cert_and_key_builds_acceptor() {
+        // rustls 0.23 requires an explicit CryptoProvider when no default feature is enabled.
+        let _ = rustls::crypto::ring::default_provider().install_default();
+
         let dir = std::env::temp_dir().join("rv-transport-test-valid-tls");
         let _ = std::fs::create_dir_all(&dir);
         let cert_path = dir.join("cert.pem");

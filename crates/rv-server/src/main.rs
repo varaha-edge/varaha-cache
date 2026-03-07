@@ -21,10 +21,7 @@ async fn main() -> anyhow::Result<()> {
     let runtime = runtime::ServerRuntime::new(&mut args)?;
 
     // Register cache metrics now that the engine exists
-    telemetry::register_cache_metrics(
-        &providers.meter,
-        runtime.cache.stats_ref().clone(),
-    );
+    telemetry::register_cache_metrics(&providers.meter, runtime.cache.stats_ref().clone());
 
     // Run server
     runtime.run(&args).await?;
