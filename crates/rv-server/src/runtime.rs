@@ -434,6 +434,23 @@ async fn handle_request(
     tracing::Span::current().record("http.status_code", response.status.code());
     tracing::Span::current().record("cache.hit", is_cache_hit);
 
+    let handling = if is_cache_hit {
+        "hit"
+    } else if ctx.is_pass {
+        "pass"
+    } else {
+        "miss"
+    };
+    info!(
+        http.method = %ctx.request.method,
+        http.url = %ctx.request.url,
+        http.status_code = response.status.code(),
+        cache.handling = handling,
+        resp.bytes = resp_body_len,
+        duration_ms = format_args!("{:.3}", elapsed * 1000.0),
+        "request handled"
+    );
+
     (response, resp_body)
 }
 
