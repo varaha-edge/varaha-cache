@@ -4,7 +4,7 @@ const MAX_POOL_SIZE: usize = 32;
 const DEFAULT_BUF_CAPACITY: usize = 512;
 
 thread_local! {
-    static BUF_POOL: RefCell<Vec<Vec<u8>>> = RefCell::new(Vec::new());
+    static BUF_POOL: RefCell<Vec<Vec<u8>>> = const { RefCell::new(Vec::new()) };
 }
 
 /// Get a buffer from the thread-local pool, or create a new one.
