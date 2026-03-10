@@ -88,6 +88,9 @@ impl TransportServer {
                 result = listener.accept() => {
                     let (stream, peer_addr) = result.map_err(TransportError::Io)?;
 
+                    // Disable Nagle's algorithm for lower latency on small responses.
+                    let _ = stream.set_nodelay(true);
+
                     let local_addr = stream
                         .local_addr()
                         .unwrap_or(self.config.listen_addr);
@@ -182,9 +185,11 @@ async fn handle_connection(
         // Call the handler
         let (response, resp_body) = handler(request, body, conn_info.clone()).await;
 
-        // Build response bytes
-        let mut resp_buf = Vec::new();
-        resp_buf.extend_from_slice(
+        // Build response headers into a pre-sized buffer. The body is written
+        // separately to avoid copying it into the header buffer.
+        let mut hdr_buf = Vec::with_capacity(512);
+
+        hdr_buf.extend_from_slice(
             format!(
                 "{} {} {}\r\n",
                 response.protocol,
@@ -195,32 +200,33 @@ async fn handle_connection(
         );
 
         for h in response.headers.iter() {
-            resp_buf.extend_from_slice(format!("{}: {}\r\n", h.name, h.value).as_bytes());
+            hdr_buf.extend_from_slice(format!("{}: {}\r\n", h.name, h.value).as_bytes());
         }
 
         if let Some(ref body) = resp_body {
             if response.get_header("Content-Length").is_none() {
-                resp_buf
+                hdr_buf
                     .extend_from_slice(format!("Content-Length: {}\r\n", body.len()).as_bytes());
             }
         }
 
         if !keepalive {
-            resp_buf.extend_from_slice(b"Connection: close\r\n");
+            hdr_buf.extend_from_slice(b"Connection: close\r\n");
         }
 
-        resp_buf.extend_from_slice(b"\r\n");
+        hdr_buf.extend_from_slice(b"\r\n");
 
-        if let Some(ref body) = resp_body {
-            resp_buf.extend_from_slice(body);
-        }
-
-        // Write response
+        // Write headers and body as separate writes to avoid copying the body.
         let stream = buf_stream.get_mut();
         stream
-            .write_all(&resp_buf)
+            .write_all(&hdr_buf)
             .await
             .map_err(TransportError::Io)?;
+
+        if let Some(ref body) = resp_body {
+            stream.write_all(body).await.map_err(TransportError::Io)?;
+        }
+
         stream.flush().await.map_err(TransportError::Io)?;
 
         if !keepalive {

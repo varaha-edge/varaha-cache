@@ -14,6 +14,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
+use bytes::Bytes;
 use memmap2::MmapMut;
 use parking_lot::Mutex;
 use rv_types::{Digest, ObjAttr};
@@ -265,7 +266,7 @@ impl Stevedore for FileStevedore {
         Ok(())
     }
 
-    fn get_body(&self, oc: &ObjCore) -> Option<Vec<u8>> {
+    fn get_body(&self, oc: &ObjCore) -> Option<Bytes> {
         let guard = self.mmap.lock();
         let mmap = guard.as_ref()?;
         let index = self.index.lock();
@@ -277,7 +278,7 @@ impl Stevedore for FileStevedore {
 
         let body_start = slot.offset + SLOT_HEADER_SIZE;
         let body_end = body_start + slot.body_len;
-        Some(mmap[body_start..body_end].to_vec())
+        Some(Bytes::copy_from_slice(&mmap[body_start..body_end]))
     }
 
     fn total_space(&self) -> usize {
@@ -355,7 +356,7 @@ mod tests {
         stv.extend(&oc, b"hello world").unwrap();
 
         let body = stv.get_body(&oc).unwrap();
-        assert_eq!(body, b"hello world");
+        assert_eq!(&body[..], b"hello world");
     }
 
     #[test]
@@ -369,7 +370,7 @@ mod tests {
         stv.extend(&oc, b"world").unwrap();
 
         let body = stv.get_body(&oc).unwrap();
-        assert_eq!(body, b"hello world");
+        assert_eq!(&body[..], b"hello world");
     }
 
     #[test]
@@ -437,7 +438,7 @@ mod tests {
         stv.extend(&oc1, b"body-one").unwrap();
         stv.extend(&oc2, b"body-two").unwrap();
 
-        assert_eq!(stv.get_body(&oc1).unwrap(), b"body-one");
-        assert_eq!(stv.get_body(&oc2).unwrap(), b"body-two");
+        assert_eq!(&stv.get_body(&oc1).unwrap()[..], b"body-one");
+        assert_eq!(&stv.get_body(&oc2).unwrap()[..], b"body-two");
     }
 }

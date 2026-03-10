@@ -19,6 +19,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
+use bytes::Bytes;
 use memmap2::MmapMut;
 use parking_lot::Mutex;
 use rv_types::{Digest, ObjAttr};
@@ -638,7 +639,7 @@ impl Stevedore for PersistentStevedore {
         Ok(())
     }
 
-    fn get_body(&self, oc: &ObjCore) -> Option<Vec<u8>> {
+    fn get_body(&self, oc: &ObjCore) -> Option<Bytes> {
         let slab_idx = *self.digest_index.lock().get(&oc.digest)?;
 
         let mmap_guard = self.mmap.lock();
@@ -652,7 +653,7 @@ impl Stevedore for PersistentStevedore {
 
         let start = slab.offset;
         let end = start + slab.body_len;
-        Some(mmap[start..end].to_vec())
+        Some(Bytes::copy_from_slice(&mmap[start..end]))
     }
 
     fn total_space(&self) -> usize {
@@ -733,7 +734,7 @@ mod tests {
         stv.extend(&oc, b"hello world").unwrap();
 
         let body = stv.get_body(&oc).unwrap();
-        assert_eq!(body, b"hello world");
+        assert_eq!(&body[..], b"hello world");
     }
 
     #[test]
@@ -747,7 +748,7 @@ mod tests {
         stv.extend(&oc, b"world").unwrap();
 
         let body = stv.get_body(&oc).unwrap();
-        assert_eq!(body, b"hello world");
+        assert_eq!(&body[..], b"hello world");
     }
 
     #[test]
@@ -807,12 +808,12 @@ mod tests {
         stv.extend(&oc1, b"body-one").unwrap();
         stv.extend(&oc2, b"body-two").unwrap();
 
-        assert_eq!(stv.get_body(&oc1).unwrap(), b"body-one");
-        assert_eq!(stv.get_body(&oc2).unwrap(), b"body-two");
+        assert_eq!(&stv.get_body(&oc1).unwrap()[..], b"body-one");
+        assert_eq!(&stv.get_body(&oc2).unwrap()[..], b"body-two");
 
         stv.free_obj(&mut oc1);
         assert_eq!(stv.slab_count(), 1);
-        assert_eq!(stv.get_body(&oc2).unwrap(), b"body-two");
+        assert_eq!(&stv.get_body(&oc2).unwrap()[..], b"body-two");
     }
 
     #[test]
@@ -832,7 +833,7 @@ mod tests {
         assert_eq!(stv.slab_count(), 1);
 
         stv.extend(&oc2, b"reused").unwrap();
-        assert_eq!(stv.get_body(&oc2).unwrap(), b"reused");
+        assert_eq!(&stv.get_body(&oc2).unwrap()[..], b"reused");
     }
 
     #[test]
@@ -898,7 +899,7 @@ mod tests {
         assert_eq!(stv.slab_count(), 2);
 
         // Remaining objects should still be readable.
-        assert_eq!(stv.get_body(&oc1).unwrap(), b"first");
-        assert_eq!(stv.get_body(&oc3).unwrap(), b"third");
+        assert_eq!(&stv.get_body(&oc1).unwrap()[..], b"first");
+        assert_eq!(&stv.get_body(&oc3).unwrap()[..], b"third");
     }
 }

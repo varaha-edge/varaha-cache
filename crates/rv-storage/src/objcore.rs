@@ -9,13 +9,14 @@
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicI32, AtomicU8, Ordering};
 
+use bytes::Bytes;
 use parking_lot::Mutex;
 use rv_types::{Digest, ObjAttr, ObjCoreFlags, ObjExpFlags, ObjFlags, VtimDur, VtimReal};
 
 /// Inner mutable state protected by a mutex.
 struct ObjCoreInner {
-    /// The object body bytes.
-    body: Vec<u8>,
+    /// The object body bytes (reference-counted for zero-copy reads).
+    body: Bytes,
     /// Attribute key-value storage.
     attrs: HashMap<ObjAttr, Vec<u8>>,
     /// Per-object flags (gzipped, ESI-processed, etc.).
@@ -73,7 +74,7 @@ impl ObjCore {
             last_lru: VtimReal::default(),
             timer_idx: 0,
             inner: Mutex::new(ObjCoreInner {
-                body: Vec::new(),
+                body: Bytes::new(),
                 attrs: HashMap::new(),
                 obj_flags: ObjFlags::empty(),
             }),
@@ -146,17 +147,29 @@ impl ObjCore {
     /// Stores (replaces) the object body.
     pub fn store_body(&self, data: &[u8]) {
         let mut inner = self.inner.lock();
-        inner.body = data.to_vec();
+        inner.body = Bytes::copy_from_slice(data);
+    }
+
+    /// Stores (replaces) the object body from an existing `Bytes` (zero-copy).
+    pub fn store_body_bytes(&self, data: Bytes) {
+        let mut inner = self.inner.lock();
+        inner.body = data;
     }
 
     /// Appends data to the existing body.
     pub fn append_body(&self, data: &[u8]) {
         let mut inner = self.inner.lock();
-        inner.body.extend_from_slice(data);
+        let mut buf = Vec::with_capacity(inner.body.len() + data.len());
+        buf.extend_from_slice(&inner.body);
+        buf.extend_from_slice(data);
+        inner.body = Bytes::from(buf);
     }
 
-    /// Returns a clone of the object body, or `None` if empty.
-    pub fn get_body(&self) -> Option<Vec<u8>> {
+    /// Returns a zero-copy reference to the object body, or `None` if empty.
+    ///
+    /// The returned `Bytes` is reference-counted; cloning it does not copy
+    /// the underlying data.
+    pub fn get_body(&self) -> Option<Bytes> {
         let inner = self.inner.lock();
         if inner.body.is_empty() {
             None
@@ -174,7 +187,7 @@ impl ObjCore {
     /// Clears the body, releasing memory.
     pub fn clear_body(&self) {
         let mut inner = self.inner.lock();
-        inner.body = Vec::new();
+        inner.body = Bytes::new();
     }
 
     // ---------------------------------------------------------------
@@ -302,7 +315,7 @@ mod tests {
         let oc = ObjCore::new(test_digest(3));
         oc.store_body(b"hello world");
         assert_eq!(oc.body_len(), 11);
-        assert_eq!(oc.get_body().unwrap(), b"hello world");
+        assert_eq!(&oc.get_body().unwrap()[..], b"hello world");
     }
 
     #[test]
@@ -310,7 +323,7 @@ mod tests {
         let oc = ObjCore::new(test_digest(4));
         oc.store_body(b"hello ");
         oc.append_body(b"world");
-        assert_eq!(oc.get_body().unwrap(), b"hello world");
+        assert_eq!(&oc.get_body().unwrap()[..], b"hello world");
     }
 
     #[test]

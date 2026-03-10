@@ -11,36 +11,41 @@
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
+use bytes::Bytes;
 use dashmap::DashMap;
 use rv_types::{Digest, ObjAttr};
-use tracing::{debug, warn};
+use tracing::debug;
 
 use crate::objcore::ObjCore;
 use crate::traits::{Stevedore, StorageError};
 
-/// A single cached object stored on the heap.
+/// A single cached object's metadata stored on the heap.
+///
+/// Body data is stored in the `ObjCore` (as `Bytes`) to avoid double storage.
+/// The stevedore only tracks attributes and space accounting.
 #[derive(Debug, Clone)]
 struct StoredObject {
-    body: Vec<u8>,
     attrs: HashMap<ObjAttr, Vec<u8>>,
+    /// Tracked body size for space accounting (body itself lives in ObjCore).
+    body_size: usize,
 }
 
 impl StoredObject {
     fn new() -> Self {
         Self {
-            body: Vec::new(),
             attrs: HashMap::new(),
+            body_size: 0,
         }
     }
 
-    /// Returns the approximate heap footprint of this object.
+    /// Returns the approximate heap footprint of this object's metadata.
     fn size(&self) -> usize {
         let attr_size: usize = self
             .attrs
             .values()
             .map(|v| v.len() + std::mem::size_of::<ObjAttr>())
             .sum();
-        self.body.capacity() + attr_size + std::mem::size_of::<Self>()
+        self.body_size + attr_size + std::mem::size_of::<Self>()
     }
 }
 
@@ -156,30 +161,15 @@ impl Stevedore for MallocStevedore {
             .get_mut(&oc.digest)
             .ok_or(StorageError::NotFound)?;
 
-        let old_cap = entry.body.capacity();
-        entry.body.extend_from_slice(data);
-        let new_cap = entry.body.capacity();
-
-        // Track any additional heap allocation the Vec performed.
-        if new_cap > old_cap {
-            if let Err(e) = self.try_reserve(new_cap - old_cap) {
-                warn!(digest = %oc.digest, "extend caused over-allocation: {e}");
-                // We still keep the data -- the limit is soft for extend.
-            }
-        }
+        // Track the body size for space accounting only.
+        // The actual body data lives in ObjCore (as Bytes).
+        entry.body_size += data.len();
 
         Ok(())
     }
 
-    fn trim(&self, oc: &ObjCore) {
-        if let Some(mut entry) = self.objects.get_mut(&oc.digest) {
-            let old_cap = entry.body.capacity();
-            entry.body.shrink_to_fit();
-            let new_cap = entry.body.capacity();
-            if old_cap > new_cap {
-                self.release(old_cap - new_cap);
-            }
-        }
+    fn trim(&self, _oc: &ObjCore) {
+        // No-op: body is stored in ObjCore as Bytes, not in StoredObject.
     }
 
     fn get_attr(&self, oc: &ObjCore, attr: ObjAttr) -> Option<Vec<u8>> {
@@ -206,13 +196,11 @@ impl Stevedore for MallocStevedore {
         Ok(())
     }
 
-    fn get_body(&self, oc: &ObjCore) -> Option<Vec<u8>> {
-        let entry = self.objects.get(&oc.digest)?;
-        if entry.body.is_empty() {
-            None
-        } else {
-            Some(entry.body.clone())
-        }
+    fn get_body(&self, oc: &ObjCore) -> Option<Bytes> {
+        // Body is stored in ObjCore, not in the stevedore.
+        // Delegate to ObjCore for backward compatibility.
+        let _ = self.objects.get(&oc.digest)?;
+        oc.get_body()
     }
 
     fn total_space(&self) -> usize {
@@ -277,9 +265,11 @@ mod tests {
 
         stv.alloc_obj(&mut oc, 64).unwrap();
         stv.extend(&oc, b"hello world").unwrap();
+        // Body is stored in ObjCore, not in the stevedore.
+        oc.store_body(b"hello world");
 
         let body = stv.get_body(&oc).unwrap();
-        assert_eq!(body, b"hello world");
+        assert_eq!(&body[..], b"hello world");
     }
 
     #[test]
@@ -290,9 +280,10 @@ mod tests {
         stv.alloc_obj(&mut oc, 64).unwrap();
         stv.extend(&oc, b"hello ").unwrap();
         stv.extend(&oc, b"world").unwrap();
+        oc.store_body(b"hello world");
 
         let body = stv.get_body(&oc).unwrap();
-        assert_eq!(body, b"hello world");
+        assert_eq!(&body[..], b"hello world");
     }
 
     #[test]
@@ -359,11 +350,10 @@ mod tests {
         let mut oc = ObjCore::new(test_digest(9));
         stv.alloc_obj(&mut oc, 1024).unwrap();
 
-        // Write a small amount then trim.
         stv.extend(&oc, b"small").unwrap();
+        oc.store_body(b"small");
         stv.trim(&oc);
-        // Should still be readable after trim.
-        assert_eq!(stv.get_body(&oc).unwrap(), b"small");
+        assert_eq!(&stv.get_body(&oc).unwrap()[..], b"small");
     }
 
     #[test]
@@ -378,14 +368,16 @@ mod tests {
         assert_eq!(stv.object_count(), 2);
 
         stv.extend(&oc1, b"body1").unwrap();
+        oc1.store_body(b"body1");
         stv.extend(&oc2, b"body2").unwrap();
+        oc2.store_body(b"body2");
 
-        assert_eq!(stv.get_body(&oc1).unwrap(), b"body1");
-        assert_eq!(stv.get_body(&oc2).unwrap(), b"body2");
+        assert_eq!(&stv.get_body(&oc1).unwrap()[..], b"body1");
+        assert_eq!(&stv.get_body(&oc2).unwrap()[..], b"body2");
 
         stv.free_obj(&mut oc1);
         assert_eq!(stv.object_count(), 1);
-        assert_eq!(stv.get_body(&oc2).unwrap(), b"body2");
+        assert_eq!(&stv.get_body(&oc2).unwrap()[..], b"body2");
     }
 
     #[test]

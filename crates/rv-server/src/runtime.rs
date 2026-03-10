@@ -1087,7 +1087,7 @@ fn parse_range_header(range_value: &str, content_length: usize) -> Option<Vec<(u
 /// Deliver state: build the client response from cached object or beresp.
 fn state_deliver(
     ctx: &mut RequestContext,
-    cache: &Arc<CacheEngine>,
+    _cache: &Arc<CacheEngine>,
     vcl: &Option<Arc<VclInterpreter>>,
     conn_info: &ConnectionInfo,
     log: &LogWriter,
@@ -1099,7 +1099,7 @@ fn state_deliver(
         // Delivering from cache hit
         response = HttpMessage::new_response(HttpStatus::OK, HttpVersion::Http11);
         response.set_header("X-Cache", "HIT");
-        resp_body = cache.storage().get_body(oc);
+        resp_body = oc.get_body().map(|b| b.to_vec());
     } else if let Some(beresp) = &ctx.beresp {
         // Delivering from backend response
         response = HttpMessage::new_response(beresp.status, HttpVersion::Http11);

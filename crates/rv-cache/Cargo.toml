@@ -16,6 +16,7 @@ rv-filter = { workspace = true }
 rv-backend = { workspace = true }
 rv-log = { workspace = true }
 tokio = { workspace = true }
+bytes = { workspace = true }
 parking_lot = { workspace = true }
 dashmap = { workspace = true }
 crossbeam = { workspace = true }

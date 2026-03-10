@@ -638,7 +638,7 @@ mod tests {
         match engine.lookup(&digest, Some(&gzip_req)) {
             CacheLookupResult::Hit(oc) => {
                 let body = oc.get_body().expect("body should exist");
-                assert_eq!(body, b"gzip-compressed body");
+                assert_eq!(&body[..], b"gzip-compressed body");
             }
             other => panic!("expected Hit for gzip, got {:?}", other),
         }
@@ -647,7 +647,7 @@ mod tests {
         match engine.lookup(&digest, Some(&br_req)) {
             CacheLookupResult::Hit(oc) => {
                 let body = oc.get_body().expect("body should exist");
-                assert_eq!(body, b"brotli-compressed body");
+                assert_eq!(&body[..], b"brotli-compressed body");
             }
             other => panic!("expected Hit for br, got {:?}", other),
         }
@@ -720,7 +720,7 @@ mod tests {
         match engine.lookup(&digest, None) {
             CacheLookupResult::Hit(oc) => {
                 let body = oc.get_body().expect("body should exist");
-                assert_eq!(body, b"first variant");
+                assert_eq!(&body[..], b"first variant");
             }
             other => panic!("expected Hit (backward compat), got {:?}", other),
         }
