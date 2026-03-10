@@ -1,9 +1,7 @@
-use std::collections::VecDeque;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 
 use dashmap::DashMap;
-use parking_lot::Mutex;
 use rv_config::CacheConfig;
 use rv_hash::HashSlinger;
 use rv_hash::objhead::ObjHead;
@@ -11,12 +9,13 @@ use rv_http::vary::VaryMatcher;
 use rv_log::LogWriter;
 use rv_storage::{ObjCore, Stevedore};
 use rv_types::vsl::Vxid;
-use rv_types::{Digest, LogTag, ObjAttr, VtimDur, VtimReal};
+use rv_types::{Digest, LogTag, VtimDur, VtimReal};
 
 use crate::ban::BanList;
 use crate::error::CacheError;
 use crate::expire::ExpiryManager;
 use crate::lookup::{CacheLookupResult, evaluate_object};
+use crate::lru::ShardedLru;
 use crate::stats::CacheStats;
 
 /// Default maximum number of cached objects before LRU eviction begins.
@@ -39,82 +38,8 @@ impl Default for TtlInfo {
     }
 }
 
-/// Simple LRU eviction tracker using a VecDeque.
-///
-/// Digests are ordered from oldest (front) to newest (back).
-/// When the cache exceeds `capacity`, `evict_oldest()` returns the
-/// least-recently-used digest so the caller can remove it from storage.
-///
-/// This uses O(n) scans for `touch()` and `remove()` which is acceptable
-/// for moderate cache sizes (up to hundreds of thousands of objects).
-/// For significantly larger caches a doubly-linked-list with a HashMap
-/// index would be more appropriate.
-pub struct LruTracker {
-    order: Mutex<VecDeque<Digest>>,
-    capacity: usize,
-}
-
-impl LruTracker {
-    /// Create a new LRU tracker with the given maximum capacity.
-    pub fn new(capacity: usize) -> Self {
-        Self {
-            order: Mutex::new(VecDeque::with_capacity(capacity.min(8192))),
-            capacity,
-        }
-    }
-
-    /// Record a new digest insertion.  The digest is placed at the back
-    /// of the queue (most-recently-used position).
-    pub fn insert(&self, digest: Digest) {
-        let mut order = self.order.lock();
-        // Avoid duplicates -- if the digest already exists, move it to the back.
-        if let Some(pos) = order.iter().position(|d| *d == digest) {
-            order.remove(pos);
-        }
-        order.push_back(digest);
-    }
-
-    /// Touch a digest on access (cache hit), moving it to the
-    /// most-recently-used position.
-    pub fn touch(&self, digest: &Digest) {
-        let mut order = self.order.lock();
-        if let Some(pos) = order.iter().position(|d| d == digest) {
-            order.remove(pos);
-            order.push_back(*digest);
-        }
-    }
-
-    /// Remove a specific digest (e.g. on purge or explicit expiry).
-    pub fn remove(&self, digest: &Digest) {
-        let mut order = self.order.lock();
-        if let Some(pos) = order.iter().position(|d| d == digest) {
-            order.remove(pos);
-        }
-    }
-
-    /// Evict the least-recently-used digest (front of the queue).
-    /// Returns `None` if the tracker is empty.
-    pub fn evict_oldest(&self) -> Option<Digest> {
-        let mut order = self.order.lock();
-        order.pop_front()
-    }
-
-    /// The maximum number of objects this tracker allows before
-    /// eviction should be triggered.
-    pub fn capacity(&self) -> usize {
-        self.capacity
-    }
-
-    /// Current number of tracked digests.
-    pub fn len(&self) -> usize {
-        self.order.lock().len()
-    }
-
-    /// Returns true if no digests are tracked.
-    pub fn is_empty(&self) -> bool {
-        self.order.lock().is_empty()
-    }
-}
+/// Type alias for backward compatibility with existing code.
+pub type LruTracker = ShardedLru;
 
 /// The central cache engine that coordinates hash lookup, storage,
 /// TTL/expiry management, ban processing, and LRU eviction.
@@ -130,7 +55,7 @@ pub struct CacheEngine {
     /// Each digest can map to multiple variants (e.g. different Accept-Encoding).
     objects: DashMap<Digest, Vec<Arc<ObjCore>>>,
     /// LRU eviction tracker.
-    lru: LruTracker,
+    lru: ShardedLru,
     /// Maximum number of objects before LRU eviction kicks in.
     max_objects: usize,
 }
@@ -153,7 +78,7 @@ impl CacheEngine {
             log,
             config,
             objects: DashMap::new(),
-            lru: LruTracker::new(DEFAULT_MAX_OBJECTS),
+            lru: ShardedLru::new(DEFAULT_MAX_OBJECTS),
             max_objects: DEFAULT_MAX_OBJECTS,
         }
     }
@@ -178,7 +103,7 @@ impl CacheEngine {
             log,
             config,
             objects: DashMap::new(),
-            lru: LruTracker::new(max_objects),
+            lru: ShardedLru::new(max_objects),
             max_objects,
         }
     }
@@ -205,8 +130,8 @@ impl CacheEngine {
                 // If request headers were supplied and this variant carries
                 // Vary data, verify the request matches before considering it.
                 if let Some(req_hdrs) = request_headers {
-                    if let Some(vary_data) = oc.get_attr(ObjAttr::Vary) {
-                        if !VaryMatcher::matches(&vary_data, req_hdrs) {
+                    if let Some(vary_data) = oc.get_vary() {
+                        if !VaryMatcher::matches(vary_data, req_hdrs) {
                             continue;
                         }
                     }
@@ -315,9 +240,9 @@ impl CacheEngine {
             .map_err(CacheError::Storage)?;
         oc.store_body(body);
 
-        // Store vary data as an attribute if provided
+        // Store vary data via the lock-free field (set before Arc wrapping)
         if let Some(data) = &vary_data {
-            oc.set_attr(ObjAttr::Vary, data);
+            oc.set_vary(data);
         }
 
         let oc = Arc::new(oc);
@@ -454,7 +379,7 @@ impl CacheEngine {
     }
 
     /// Get a reference to the LRU tracker.
-    pub fn lru(&self) -> &LruTracker {
+    pub fn lru(&self) -> &ShardedLru {
         &self.lru
     }
 

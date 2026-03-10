@@ -3,9 +3,11 @@ use std::collections::BinaryHeap;
 use std::sync::Arc;
 
 use parking_lot::Mutex;
-use rv_types::{VtimDur, VtimReal};
+use rv_types::{Digest, VtimDur, VtimReal};
 
 use rv_storage::ObjCore;
+
+const N_EXPIRY_SHARDS: usize = 16;
 
 /// An entry in the expiry heap. Ordered by timer_when (earliest first).
 struct ExpiryEntry {
@@ -38,15 +40,20 @@ impl Ord for ExpiryEntry {
     }
 }
 
-/// Manages object expiry using a binary heap priority queue.
+fn shard_index(digest: &Digest) -> usize {
+    digest.bytes[0] as usize % N_EXPIRY_SHARDS
+}
+
+/// Manages object expiry using sharded binary heap priority queues.
+/// Uses 16 shards to reduce lock contention under concurrent load.
 pub struct ExpiryManager {
-    heap: Mutex<BinaryHeap<ExpiryEntry>>,
+    shards: [Mutex<BinaryHeap<ExpiryEntry>>; N_EXPIRY_SHARDS],
 }
 
 impl ExpiryManager {
     pub fn new() -> Self {
         Self {
-            heap: Mutex::new(BinaryHeap::new()),
+            shards: std::array::from_fn(|_| Mutex::new(BinaryHeap::new())),
         }
     }
 
@@ -54,47 +61,61 @@ impl ExpiryManager {
     /// The object will be scheduled for expiry at `t_origin + ttl + grace + keep`.
     pub fn insert(&self, oc: Arc<ObjCore>) {
         let when = oc.t_origin + oc.ttl + oc.grace + oc.keep;
-        let mut heap = self.heap.lock();
-        heap.push(ExpiryEntry { when, objcore: oc });
+        let idx = shard_index(&oc.digest);
+        let mut shard = self.shards[idx].lock();
+        shard.push(ExpiryEntry { when, objcore: oc });
     }
 
     /// Insert with an explicit deadline.
     pub fn insert_at(&self, oc: Arc<ObjCore>, when: VtimReal) {
-        let mut heap = self.heap.lock();
-        heap.push(ExpiryEntry { when, objcore: oc });
+        let idx = shard_index(&oc.digest);
+        let mut shard = self.shards[idx].lock();
+        shard.push(ExpiryEntry { when, objcore: oc });
     }
 
-    /// Check the earliest deadline without removing.
+    /// Check the earliest deadline across all shards without removing.
     pub fn peek_when(&self) -> Option<VtimReal> {
-        let heap = self.heap.lock();
-        heap.peek().map(|e| e.when)
+        let mut earliest: Option<VtimReal> = None;
+        for shard in &self.shards {
+            let heap = shard.lock();
+            if let Some(entry) = heap.peek() {
+                match earliest {
+                    Some(current) if current.0 <= entry.when.0 => {}
+                    _ => earliest = Some(entry.when),
+                }
+            }
+        }
+        earliest
     }
 
     /// Expire objects whose deadline has passed.
     /// Returns the expired ObjCore references so the caller can clean them up.
+    /// Locks one shard at a time to avoid holding multiple locks simultaneously.
     pub fn expire(&self, now: VtimReal) -> Vec<Arc<ObjCore>> {
         let mut expired = Vec::new();
-        let mut heap = self.heap.lock();
 
-        while let Some(entry) = heap.peek() {
-            if entry.when.0 > now.0 {
-                break;
-            }
-            if let Some(entry) = heap.pop() {
-                expired.push(entry.objcore);
+        for shard in &self.shards {
+            let mut heap = shard.lock();
+            while let Some(entry) = heap.peek() {
+                if entry.when.0 > now.0 {
+                    break;
+                }
+                if let Some(entry) = heap.pop() {
+                    expired.push(entry.objcore);
+                }
             }
         }
 
         expired
     }
 
-    /// Number of objects in the expiry queue.
+    /// Number of objects in the expiry queue (sum across all shards).
     pub fn len(&self) -> usize {
-        self.heap.lock().len()
+        self.shards.iter().map(|s| s.lock().len()).sum()
     }
 
     pub fn is_empty(&self) -> bool {
-        self.heap.lock().is_empty()
+        self.shards.iter().all(|s| s.lock().is_empty())
     }
 
     /// Time until the next expiry, or None if the queue is empty.

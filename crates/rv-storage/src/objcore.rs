@@ -53,6 +53,8 @@ pub struct ObjCore {
     pub last_lru: VtimReal,
     /// Index into the expiry timer binary heap.
     pub timer_idx: u32,
+    /// Vary attribute data, set once at creation time. Read without locking.
+    vary_data: Option<Bytes>,
     /// Mutex-protected inner state (body, attrs, obj_flags).
     inner: Mutex<ObjCoreInner>,
 }
@@ -73,6 +75,7 @@ impl ObjCore {
             timer_when: VtimReal::default(),
             last_lru: VtimReal::default(),
             timer_idx: 0,
+            vary_data: None,
             inner: Mutex::new(ObjCoreInner {
                 body: Bytes::new(),
                 attrs: HashMap::new(),
@@ -210,6 +213,23 @@ impl ObjCore {
     pub fn remove_attr(&self, attr: ObjAttr) -> Option<Vec<u8>> {
         let mut inner = self.inner.lock();
         inner.attrs.remove(&attr)
+    }
+
+    // ---------------------------------------------------------------
+    // Lock-free Vary access
+    // ---------------------------------------------------------------
+
+    /// Sets the Vary attribute data. Must be called before the `ObjCore` is
+    /// wrapped in `Arc` and shared across threads. Because this takes
+    /// `&mut self`, Rust guarantees exclusive access at the call site.
+    pub fn set_vary(&mut self, data: &[u8]) {
+        self.vary_data = Some(Bytes::copy_from_slice(data));
+    }
+
+    /// Returns the Vary attribute data without acquiring the inner mutex.
+    /// Returns `None` if no Vary data was set.
+    pub fn get_vary(&self) -> Option<&[u8]> {
+        self.vary_data.as_deref()
     }
 
     // ---------------------------------------------------------------

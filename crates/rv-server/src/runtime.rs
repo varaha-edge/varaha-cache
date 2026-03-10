@@ -209,6 +209,7 @@ impl ServerRuntime {
             listen_addr: args.listen_addr,
             max_body_size: 64 * 1024 * 1024,
             accept_proxy_protocol: false,
+            num_listeners: 1,
         };
 
         let transport = TransportServer::new(transport_config);

@@ -6,70 +6,107 @@ use rv_types::{BodyStatus, HttpMethod};
 
 use crate::error::TransportError;
 
-/// Parse an HTTP/1.1 request from a TCP stream.
+/// Maximum number of headers to parse per request.
+const MAX_HEADERS: usize = 64;
+
+/// Initial capacity for the header accumulation buffer.
+const INITIAL_BUF_SIZE: usize = 4096;
+
+/// Maximum allowed header size (64 KiB) to prevent memory exhaustion.
+const MAX_HEADER_SIZE: usize = 64 * 1024;
+
+/// Parse an HTTP/1.1 request from a TCP stream using `httparse` for
+/// zero-allocation header parsing.
+///
+/// Headers are read line-by-line via `read_until(b'\n')` into a single
+/// pre-allocated buffer, then parsed in one pass by `httparse`. Body bytes
+/// remain untouched in the `BufReader`'s internal buffer for subsequent
+/// `read_body()` calls.
 pub async fn read_request(
     stream: &mut BufReader<TcpStream>,
 ) -> Result<HttpMessage, TransportError> {
-    // Read request line
-    let mut request_line = String::new();
-    let n = stream
-        .read_line(&mut request_line)
-        .await
-        .map_err(TransportError::Io)?;
-    if n == 0 {
-        return Err(TransportError::ConnectionClosed);
-    }
+    // Accumulate raw header bytes until we see the blank line (\r\n\r\n).
+    let mut buf = Vec::with_capacity(INITIAL_BUF_SIZE);
 
-    let request_line = request_line.trim_end();
-    let parts: Vec<&str> = request_line.splitn(3, ' ').collect();
-    if parts.len() != 3 {
-        return Err(TransportError::HttpParse(format!(
-            "invalid request line: {request_line}"
-        )));
-    }
-
-    let method = HttpMethod::parse_method(parts[0]);
-    let url = parts[1].to_string();
-    let version = parts[2]
-        .parse()
-        .map_err(|_| TransportError::InvalidVersion)?;
-
-    let mut msg = HttpMessage::new_request(method, url, version);
-
-    // Read headers
     loop {
-        let mut line = String::new();
-        let n = stream
-            .read_line(&mut line)
+        let before = buf.len();
+        let byte_count = stream
+            .read_until(b'\n', &mut buf)
             .await
             .map_err(TransportError::Io)?;
-        if n == 0 {
-            return Err(TransportError::ConnectionClosed);
+
+        if byte_count == 0 {
+            if buf.is_empty() {
+                return Err(TransportError::ConnectionClosed);
+            }
+            return Err(TransportError::HttpParse(
+                "incomplete request headers".to_string(),
+            ));
         }
 
-        let line = line.trim_end_matches("\r\n").trim_end_matches('\n');
-        if line.is_empty() {
+        // Check for end-of-headers: \r\n\r\n or \n\n
+        let len = buf.len();
+        if len >= 4 && &buf[len - 4..] == b"\r\n\r\n" {
+            break;
+        }
+        if len >= 2 && &buf[len - 2..] == b"\n\n" {
+            break;
+        }
+        // Also detect a lone \r\n or \n right after the first line break
+        // (handles the case where the line we just read is the blank line
+        // but a previous line ended with bare \n).
+        let segment = &buf[before..];
+        if segment == b"\r\n" || segment == b"\n" {
+            // This was the blank terminator line.
             break;
         }
 
-        if let Some((name, value)) = line.split_once(':') {
-            msg.set_header(name.trim(), value.trim());
+        if buf.len() > MAX_HEADER_SIZE {
+            return Err(TransportError::RequestTooLarge);
         }
     }
 
-    // Determine body status from headers
-    if let Some(cl) = msg.get_header("Content-Length") {
-        if cl.parse::<usize>().unwrap_or(0) > 0 {
-            msg.body_status = BodyStatus::Length;
-        }
-    } else if msg
-        .get_header("Transfer-Encoding")
-        .is_some_and(|te| te.eq_ignore_ascii_case("chunked"))
-    {
-        msg.body_status = BodyStatus::Chunked;
-    }
+    // Parse the accumulated header bytes with httparse.
+    let mut headers = [httparse::EMPTY_HEADER; MAX_HEADERS];
+    let mut req = httparse::Request::new(&mut headers);
 
-    Ok(msg)
+    match req.parse(&buf) {
+        Ok(httparse::Status::Complete(_header_len)) => {
+            let method = HttpMethod::parse_method(req.method.unwrap_or("GET"));
+            let path = req.path.unwrap_or("/").to_string();
+            let version = match req.version {
+                Some(0) => HttpVersion::Http10,
+                _ => HttpVersion::Http11,
+            };
+
+            let mut msg = HttpMessage::new_request(method, path, version);
+
+            for header in req.headers.iter() {
+                let value = std::str::from_utf8(header.value).unwrap_or("");
+                msg.set_header(header.name, value);
+            }
+
+            // Determine body status from headers.
+            if let Some(cl) = msg.get_header("Content-Length") {
+                if cl.parse::<usize>().unwrap_or(0) > 0 {
+                    msg.body_status = BodyStatus::Length;
+                }
+            } else if msg
+                .get_header("Transfer-Encoding")
+                .is_some_and(|te| te.eq_ignore_ascii_case("chunked"))
+            {
+                msg.body_status = BodyStatus::Chunked;
+            }
+
+            Ok(msg)
+        }
+        Ok(httparse::Status::Partial) => Err(TransportError::HttpParse(
+            "incomplete HTTP request".to_string(),
+        )),
+        Err(e) => Err(TransportError::HttpParse(format!(
+            "HTTP parse error: {e}"
+        ))),
+    }
 }
 
 /// Read the request body based on Content-Length or chunked encoding.

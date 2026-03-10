@@ -13,6 +13,7 @@ rv-backend = { workspace = true }
 tokio = { workspace = true }
 hyper = { workspace = true }
 http = { workspace = true }
+httparse = { workspace = true }
 h2 = { workspace = true }
 bytes = { workspace = true }
 thiserror = { workspace = true }

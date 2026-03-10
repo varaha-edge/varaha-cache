@@ -1,4 +1,5 @@
 use std::future::Future;
+use std::io;
 use std::net::SocketAddr;
 use std::pin::Pin;
 use std::sync::Arc;
@@ -29,6 +30,10 @@ pub struct TransportConfig {
     pub max_body_size: usize,
     /// Whether to accept PROXY protocol.
     pub accept_proxy_protocol: bool,
+    /// Number of SO_REUSEPORT listeners. When > 1, multiple listeners are
+    /// bound to the same address with `SO_REUSEPORT` so the kernel distributes
+    /// incoming connections across them.
+    pub num_listeners: usize,
 }
 
 impl Default for TransportConfig {
@@ -37,8 +42,22 @@ impl Default for TransportConfig {
             listen_addr: "127.0.0.1:6081".parse().unwrap(),
             max_body_size: 64 * 1024 * 1024,
             accept_proxy_protocol: false,
+            num_listeners: 1,
         }
     }
+}
+
+/// Create a `TcpListener` with `SO_REUSEPORT` and `SO_REUSEADDR` enabled.
+fn bind_reuseport(addr: SocketAddr) -> Result<TcpListener, io::Error> {
+    let socket = if addr.is_ipv4() {
+        tokio::net::TcpSocket::new_v4()?
+    } else {
+        tokio::net::TcpSocket::new_v6()?
+    };
+    socket.set_reuseport(true)?;
+    socket.set_reuseaddr(true)?;
+    socket.bind(addr)?;
+    socket.listen(1024)
 }
 
 /// Callback for handling incoming requests.
@@ -69,6 +88,19 @@ impl TransportServer {
     /// is cancelled, at which point it stops accepting new connections and
     /// returns `Ok(())`.
     pub async fn serve(
+        &self,
+        handler: RequestHandler,
+        cancel: CancellationToken,
+    ) -> Result<(), TransportError> {
+        if self.config.num_listeners > 1 {
+            self.serve_reuseport(handler, cancel).await
+        } else {
+            self.serve_single(handler, cancel).await
+        }
+    }
+
+    /// Single-listener path (original behaviour, no SO_REUSEPORT).
+    async fn serve_single(
         &self,
         handler: RequestHandler,
         cancel: CancellationToken,
@@ -118,6 +150,86 @@ impl TransportServer {
                     });
                 }
             }
+        }
+
+        Ok(())
+    }
+
+    /// Multi-listener path using SO_REUSEPORT for kernel-level load
+    /// distribution across accept loops.
+    async fn serve_reuseport(
+        &self,
+        handler: RequestHandler,
+        cancel: CancellationToken,
+    ) -> Result<(), TransportError> {
+        let mut handles = Vec::new();
+
+        for i in 0..self.config.num_listeners {
+            let listener = bind_reuseport(self.config.listen_addr)
+                .map_err(TransportError::Io)?;
+            let handler = Arc::clone(&handler);
+            let cancel = cancel.clone();
+            let max_body_size = self.config.max_body_size;
+            let listen_addr = self.config.listen_addr;
+
+            let handle = tokio::spawn(async move {
+                info!(addr = %listen_addr, listener = i, "reuseport listener started");
+                loop {
+                    tokio::select! {
+                        _ = cancel.cancelled() => {
+                            info!(listener = i, "reuseport listener shutting down");
+                            break;
+                        }
+                        result = listener.accept() => {
+                            match result {
+                                Ok((stream, peer_addr)) => {
+                                    let _ = stream.set_nodelay(true);
+
+                                    let local_addr = stream
+                                        .local_addr()
+                                        .unwrap_or(listen_addr);
+
+                                    let handler = Arc::clone(&handler);
+
+                                    tokio::spawn(async move {
+                                        let conn_info = ConnectionInfo {
+                                            client_addr: peer_addr,
+                                            local_addr,
+                                            real_client_addr: None,
+                                            is_tls: false,
+                                            http_version: DetectedVersion::Http11,
+                                        };
+
+                                        if let Err(e) =
+                                            handle_connection(stream, conn_info, handler, max_body_size).await
+                                        {
+                                            match &e {
+                                                TransportError::ConnectionClosed => {}
+                                                _ => error!(error = %e, peer = %peer_addr, "connection error"),
+                                            }
+                                        }
+                                    });
+                                }
+                                Err(e) => {
+                                    error!(listener = i, error = %e, "accept error");
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            handles.push(handle);
+        }
+
+        info!(
+            addr = %self.config.listen_addr,
+            count = self.config.num_listeners,
+            "transport server listening with SO_REUSEPORT"
+        );
+
+        // Wait for all listeners to finish.
+        for handle in handles {
+            let _ = handle.await;
         }
 
         Ok(())
@@ -187,7 +299,7 @@ async fn handle_connection(
 
         // Build response headers into a pre-sized buffer. The body is written
         // separately to avoid copying it into the header buffer.
-        let mut hdr_buf = Vec::with_capacity(512);
+        let mut hdr_buf = crate::bufpool::get_buf();
 
         hdr_buf.extend_from_slice(
             format!(
@@ -228,6 +340,9 @@ async fn handle_connection(
         }
 
         stream.flush().await.map_err(TransportError::Io)?;
+
+        // Return the header buffer to the thread-local pool for reuse.
+        crate::bufpool::put_buf(hdr_buf);
 
         if !keepalive {
             return Ok(());
