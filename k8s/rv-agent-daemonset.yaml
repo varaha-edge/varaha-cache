@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: rv-agent
+  namespace: varaha-cache
+  labels:
+    app.kubernetes.io/name: rv-agent
+    app.kubernetes.io/component: edge-agent
+    app.kubernetes.io/part-of: varaha-cache
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: rv-agent
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: rv-agent
+        app.kubernetes.io/component: edge-agent
+    spec:
+      serviceAccountName: rv-agent
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: rv-agent
+          image: registry.intra.varaha.io/prioarc-apps/rv-agent:latest
+          env:
+            - name: CONTROL_PLANE_URL
+              value: "http://cp-api.varaha-core.svc.cluster.local:8080"
+            - name: NATS_URL
+              value: "nats://nats.varaha-core.svc.cluster.local:4222"
+            - name: VARAHA_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: rv-agent-credentials
+                  key: api-token
+            - name: RV_HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: RV_REGION
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['topology.kubernetes.io/region']
+            - name: RV_POP
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['topology.kubernetes.io/zone']
+            - name: RV_STATE_DIR
+              value: "/var/lib/varaha-cache"
+            - name: RV_HEARTBEAT_INTERVAL_SECS
+              value: "30"
+            - name: RUST_LOG
+              value: "info,rv_agent=debug"
+          volumeMounts:
+            - name: agent-state
+              mountPath: /var/lib/varaha-cache
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "test -f /var/lib/varaha-cache/agent-state.json"
+            initialDelaySeconds: 30
+            periodSeconds: 60
+      volumes:
+        - name: agent-state
+          hostPath:
+            path: /var/lib/varaha-cache
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rv-agent
+  namespace: varaha-cache
+  labels:
+    app.kubernetes.io/name: rv-agent
