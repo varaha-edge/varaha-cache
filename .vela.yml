@@ -48,7 +48,7 @@ steps:
     pull: always
     secrets: [kaniko_username, kaniko_password]
     ruleset:
-      branch: [main, perf-improvement]
+      branch: [main]
       event: [push]
     parameters:
       registry: registry.intra.varaha.io
@@ -64,7 +64,7 @@ steps:
     pull: always
     secrets: [kaniko_username, kaniko_password]
     ruleset:
-      branch: [main, perf-improvement]
+      branch: [main]
       event: [push]
     parameters:
       registry: registry.intra.varaha.io
