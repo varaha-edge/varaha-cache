@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use crate::control_plane::ConfigVersion;
 
 /// Persistent local state for the rv-agent.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct AgentState {
     /// Assigned node ID from control plane registration
     pub node_id: Option<String>,
@@ -14,16 +14,6 @@ pub struct AgentState {
     pub applied_config_version: i64,
     /// Last successfully applied configuration (for offline bootstrap)
     pub last_config: Option<ConfigVersion>,
-}
-
-impl Default for AgentState {
-    fn default() -> Self {
-        Self {
-            node_id: None,
-            applied_config_version: 0,
-            last_config: None,
-        }
-    }
 }
 
 /// Manages persistent state on disk.
