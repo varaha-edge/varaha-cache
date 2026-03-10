@@ -1,3 +1,4 @@
+pub mod bufpool;
 pub mod error;
 pub mod h2_server;
 pub mod http1_client;

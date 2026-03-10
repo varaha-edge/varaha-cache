@@ -5,6 +5,7 @@
 //! pluggable object storage with allocation, attribute management, and capacity
 //! reporting.
 
+use bytes::Bytes;
 use rv_types::{ObjAttr, VtimReal};
 
 use crate::objcore::ObjCore;
@@ -84,7 +85,7 @@ pub trait Stevedore: Send + Sync {
     fn set_attr(&self, oc: &mut ObjCore, attr: ObjAttr, data: &[u8]) -> Result<(), StorageError>;
 
     /// Retrieves the full body of the object.
-    fn get_body(&self, oc: &ObjCore) -> Option<Vec<u8>>;
+    fn get_body(&self, oc: &ObjCore) -> Option<Bytes>;
 
     /// Returns the total storage capacity in bytes.
     fn total_space(&self) -> usize;
