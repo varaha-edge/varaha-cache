@@ -165,8 +165,7 @@ impl TransportServer {
         let mut handles = Vec::new();
 
         for i in 0..self.config.num_listeners {
-            let listener = bind_reuseport(self.config.listen_addr)
-                .map_err(TransportError::Io)?;
+            let listener = bind_reuseport(self.config.listen_addr).map_err(TransportError::Io)?;
             let handler = Arc::clone(&handler);
             let cancel = cancel.clone();
             let max_body_size = self.config.max_body_size;
@@ -317,8 +316,7 @@ async fn handle_connection(
 
         if let Some(ref body) = resp_body {
             if response.get_header("Content-Length").is_none() {
-                hdr_buf
-                    .extend_from_slice(format!("Content-Length: {}\r\n", body.len()).as_bytes());
+                hdr_buf.extend_from_slice(format!("Content-Length: {}\r\n", body.len()).as_bytes());
             }
         }
 

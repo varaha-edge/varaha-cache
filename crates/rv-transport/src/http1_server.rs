@@ -103,9 +103,7 @@ pub async fn read_request(
         Ok(httparse::Status::Partial) => Err(TransportError::HttpParse(
             "incomplete HTTP request".to_string(),
         )),
-        Err(e) => Err(TransportError::HttpParse(format!(
-            "HTTP parse error: {e}"
-        ))),
+        Err(e) => Err(TransportError::HttpParse(format!("HTTP parse error: {e}"))),
     }
 }
 
