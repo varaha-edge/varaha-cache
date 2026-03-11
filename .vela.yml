@@ -59,7 +59,7 @@ steps:
       build_args:
         - "RUST_VERSION=1.87"
 
-  - name: docker-build-push-rv-agent
+  - name: docker-build-push-varaha-cagent
     image: target/vela-kaniko:latest
     pull: always
     secrets: [kaniko_username, kaniko_password]
@@ -68,8 +68,8 @@ steps:
       event: [push]
     parameters:
       registry: registry.intra.varaha.io
-      repo: registry.intra.varaha.io/prioarc-apps/rv-agent
-      dockerfile: Dockerfile.rv-agent
+      repo: registry.intra.varaha.io/prioarc-apps/varaha-cagent
+      dockerfile: Dockerfile.varaha-cagent
       tags:
         - latest
         - "build-${VELA_BUILD_NUMBER}"
