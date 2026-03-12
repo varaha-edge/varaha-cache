@@ -16,7 +16,6 @@ members = [
     "crates/rv-log",
     "crates/rv-server",
     "crates/rv-tools",
-    "crates/rv-agent",
 ]
 
 [workspace.lints.clippy]
@@ -31,9 +30,6 @@ repository = "https://github.com/varaha/varaha-cache"
 [workspace.dependencies]
 # Async runtime
 tokio = { version = "1", features = ["full"] }
-
-# NATS
-async-nats = "0.38"
 
 # HTTP client
 reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
@@ -101,6 +97,12 @@ ring = "0.17"
 # Benchmarks
 criterion = "0.5"
 
+# gRPC
+tonic = { version = "0.12", features = ["gzip"] }
+prost = "0.13"
+tonic-build = "0.12"
+tokio-stream = "0.1"
+
 # Internal crates
 rv-types = { path = "crates/rv-types" }
 rv-http = { path = "crates/rv-http" }
@@ -117,4 +119,3 @@ rv-admin = { path = "crates/rv-admin" }
 rv-log = { path = "crates/rv-log" }
 rv-server = { path = "crates/rv-server" }
 rv-tools = { path = "crates/rv-tools" }
-rv-agent = { path = "crates/rv-agent" }

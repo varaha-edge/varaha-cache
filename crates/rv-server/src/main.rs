@@ -1,4 +1,5 @@
 mod cli;
+mod fleet;
 mod runtime;
 mod telemetry;
 mod vcl_loader;
