@@ -140,7 +140,7 @@ impl ServerRuntime {
             Arc::clone(&self.cache),
             Arc::clone(&self.log),
             Arc::clone(&self.config),
-            vcl_manager,
+            Arc::clone(&vcl_manager),
             running,
             Arc::clone(&self.active_vcl),
         ));
@@ -161,6 +161,26 @@ impl ServerRuntime {
         });
 
         info!(admin_addr = %args.admin_addr, "admin server started");
+
+        // Start fleet client (gRPC connection to varaha-control)
+        if let Some(fleet_config) = crate::fleet::FleetConfig::from_env() {
+            info!(
+                grpc_addr = %fleet_config.grpc_addr,
+                region = %fleet_config.region,
+                pop = %fleet_config.pop,
+                "starting fleet client"
+            );
+            crate::fleet::spawn_fleet_client(
+                fleet_config,
+                Arc::clone(&self.cache),
+                Arc::clone(&vcl_manager),
+                Arc::clone(&self.active_vcl),
+                self._start_time,
+                cancel.clone(),
+            );
+        } else {
+            info!("GRPC_ADDR not set, running standalone (no fleet integration)");
+        }
 
         // Start expiry background task
         let expiry_cache = Arc::clone(&self.cache);

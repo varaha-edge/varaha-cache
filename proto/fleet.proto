@@ -1,0 +1,109 @@
+syntax = "proto3";
+package fleet;
+
+service FleetService {
+  // Unary: node registers and gets node_id, token, initial config
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+
+  // Bidirectional stream: node sends heartbeats/results, server pushes commands
+  rpc FleetStream(stream NodeMessage) returns (stream ServerMessage);
+}
+
+// --- Registration ---
+
+message RegisterRequest {
+  string hostname = 1;
+  string region = 2;
+  string pop = 3;
+  map<string, string> tags = 4;
+  optional string zone = 5;
+  optional string public_ip = 6;
+  string private_ip = 7;
+  string listen_addr = 8;
+  string version = 9;
+}
+
+message RegisterResponse {
+  string node_id = 1;
+  string token = 2;
+  int64 config_version = 3;
+  string initial_config_json = 4;
+}
+
+// --- Node -> Server messages ---
+
+message NodeMessage {
+  string node_id = 1;
+  string token = 2;
+  oneof payload {
+    Heartbeat heartbeat = 10;
+    DeployResult deploy_result = 11;
+    PurgeAck purge_ack = 12;
+  }
+}
+
+message Heartbeat {
+  int64 config_version = 1;
+  string state = 2;
+  double load = 3;
+  uint64 uptime_secs = 4;
+  uint32 connections = 5;
+  double cache_hit_rate = 6;
+  double storage_used = 7;
+  string health = 8;
+  optional double error_rate_5xx = 9;
+  optional double p99_latency_ms = 10;
+  optional uint32 cpu_cores = 11;
+  optional string vcl_active = 12;
+}
+
+message DeployResult {
+  string deployment_id = 1;
+  string status = 2;
+  optional string message = 3;
+}
+
+message PurgeAck {
+  string purge_id = 1;
+}
+
+// --- Server -> Node messages ---
+
+message ServerMessage {
+  oneof payload {
+    HeartbeatAck heartbeat_ack = 10;
+    ConfigPush config_push = 11;
+    DeployCommand deploy_command = 12;
+    PurgeCommand purge_command = 13;
+  }
+}
+
+message HeartbeatAck {
+  bool ack = 1;
+  optional int64 desired_config_version = 2;
+}
+
+message ConfigPush {
+  int64 version = 1;
+  string scope = 2;
+  repeated string changed_fields = 3;
+  string parameters_json = 4;
+}
+
+message DeployCommand {
+  string deployment_id = 1;
+  string artifact_name = 2;
+  string artifact_version = 3;
+  string artifact_hash = 4;
+  string download_url = 5;
+}
+
+message PurgeCommand {
+  string purge_id = 1;
+  string purge_type = 2;
+  string target = 3;
+  string scope = 4;
+  repeated string keys = 5;
+  repeated string urls = 6;
+  bool soft = 7;
+}
