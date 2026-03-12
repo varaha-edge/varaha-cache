@@ -18,44 +18,48 @@ secrets:
 
 steps:
   - name: fmt
-    image: rust:1.87-slim
+    image: rust:1.88-slim
     pull: always
     commands:
+      - apt-get update && apt-get install -y --no-install-recommends protobuf-compiler && rm -rf /var/lib/apt/lists/*
       - rustup component add rustfmt
       - cargo fmt --all -- --check
 
   - name: clippy
-    image: rust:1.87-slim
+    image: rust:1.88-slim
     pull: always
     commands:
+      - apt-get update && apt-get install -y --no-install-recommends pkg-config libssl-dev protobuf-compiler && rm -rf /var/lib/apt/lists/*
       - rustup component add clippy
       - cargo clippy --workspace --all-targets -- -D warnings
 
   - name: test
-    image: rust:1.87-slim
+    image: rust:1.88-slim
     pull: always
     commands:
+      - apt-get update && apt-get install -y --no-install-recommends pkg-config libssl-dev protobuf-compiler && rm -rf /var/lib/apt/lists/*
       - cargo test --workspace
 
   - name: build
-    image: rust:1.87-slim
+    image: rust:1.88-slim
     pull: always
     commands:
+      - apt-get update && apt-get install -y --no-install-recommends pkg-config libssl-dev protobuf-compiler && rm -rf /var/lib/apt/lists/*
       - cargo build --workspace --release
 
-  - name: docker-build-push
-    image: target/vela-kaniko:latest
-    pull: always
-    secrets: [kaniko_username, kaniko_password]
-    ruleset:
-      branch: [main]
-      event: [push]
-    parameters:
-      registry: registry.intra.varaha.io
-      repo: registry.intra.varaha.io/prioarc-apps/varaha-cache
-      tags:
-        - latest
-        - "build-${VELA_BUILD_NUMBER}"
-      build_args:
-        - "RUST_VERSION=1.87"
-
+  # Docker build/push disabled until infrastructure is provisioned
+  # - name: docker-build-push
+  #   image: target/vela-kaniko:latest
+  #   pull: always
+  #   secrets: [kaniko_username, kaniko_password]
+  #   ruleset:
+  #     branch: [main]
+  #     event: [push]
+  #   parameters:
+  #     registry: registry.intra.varaha.io
+  #     repo: registry.intra.varaha.io/prioarc-apps/varaha-cache
+  #     tags:
+  #       - latest
+  #       - "build-${VELA_BUILD_NUMBER}"
+  #     build_args:
+  #       - "RUST_VERSION=1.88"

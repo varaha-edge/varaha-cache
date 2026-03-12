@@ -132,15 +132,8 @@ pub fn spawn_fleet_client(
     cancel: CancellationToken,
 ) {
     tokio::spawn(async move {
-        if let Err(e) = run_fleet_client(
-            config,
-            cache,
-            vcl_manager,
-            active_vcl,
-            start_time,
-            cancel,
-        )
-        .await
+        if let Err(e) =
+            run_fleet_client(config, cache, vcl_manager, active_vcl, start_time, cancel).await
         {
             tracing::error!(error = %e, "fleet client exited with error");
         }
@@ -163,12 +156,7 @@ async fn run_fleet_client(
 
         let mut client = FleetServiceClient::connect(config.grpc_addr.clone())
             .await
-            .with_context(|| {
-                format!(
-                    "failed to connect to gRPC server at {}",
-                    config.grpc_addr
-                )
-            })?;
+            .with_context(|| format!("failed to connect to gRPC server at {}", config.grpc_addr))?;
 
         let resp = client
             .register(tonic::Request::new(RegisterRequest {
