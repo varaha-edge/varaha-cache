@@ -15,7 +15,6 @@ use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
-use tracing;
 
 use rv_admin::VclManager;
 use rv_cache::CacheEngine;
@@ -39,8 +38,6 @@ pub struct FleetConfig {
     pub control_plane_url: String,
     /// Control plane gRPC address.
     pub grpc_addr: String,
-    /// API token for REST calls.
-    pub api_token: String,
     /// Node hostname.
     pub hostname: String,
     /// Region this node belongs to.
@@ -66,7 +63,6 @@ impl FleetConfig {
         Some(Self {
             control_plane_url,
             grpc_addr,
-            api_token: std::env::var("VARAHA_API_TOKEN").unwrap_or_default(),
             hostname,
             region: std::env::var("RV_REGION").unwrap_or_else(|_| "default".to_string()),
             pop: std::env::var("RV_POP").unwrap_or_else(|_| "default".to_string()),

@@ -30,8 +30,18 @@ impl TelemetryProviders {
 }
 
 fn build_resource() -> Resource {
+    let hostname = std::env::var("RV_HOSTNAME").unwrap_or_else(|_| "unknown".to_string());
+    let region = std::env::var("RV_REGION").unwrap_or_default();
+    let pop = std::env::var("RV_POP").unwrap_or_default();
+
     Resource::builder()
         .with_service_name("varaha-cache")
+        .with_attribute(opentelemetry::KeyValue::new(
+            "service.instance.id",
+            hostname,
+        ))
+        .with_attribute(opentelemetry::KeyValue::new("region", region))
+        .with_attribute(opentelemetry::KeyValue::new("pop", pop))
         .build()
 }
 

@@ -122,10 +122,7 @@ async fn execute_probe(probe: &HealthProbe) -> ProbeResult {
 async fn probe_backend(addr: std::net::SocketAddr, url: &str) -> Result<u16, std::io::Error> {
     let mut stream = TcpStream::connect(addr).await?;
 
-    let request = format!(
-        "GET {} HTTP/1.1\r\nHost: {}\r\nConnection: close\r\n\r\n",
-        url, addr
-    );
+    let request = format!("GET {url} HTTP/1.1\r\nHost: {addr}\r\nConnection: close\r\n\r\n");
     stream.write_all(request.as_bytes()).await?;
     stream.flush().await?;
 
