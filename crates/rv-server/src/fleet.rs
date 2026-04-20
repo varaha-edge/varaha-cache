@@ -401,7 +401,7 @@ async fn pull_effective_config(
     if !resp.status().is_success() {
         let status = resp.status();
         let body = resp.text().await.unwrap_or_default();
-        anyhow::bail!("get effective config failed (HTTP {}): {}", status, body);
+        anyhow::bail!("get effective config failed (HTTP {status}): {body}");
     }
 
     resp.json()

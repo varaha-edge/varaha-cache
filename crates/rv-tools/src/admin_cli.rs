@@ -55,7 +55,7 @@ fn main() {
 
     if command_args.is_empty() {
         // Interactive mode
-        println!("rv-admin-cli - connecting to {}", addr);
+        println!("rv-admin-cli - connecting to {addr}");
         println!("Type 'help' for available commands, 'quit' to exit.");
         println!();
 
@@ -80,7 +80,7 @@ fn main() {
                     send_command(addr, line);
                 }
                 Err(e) => {
-                    eprintln!("Error reading input: {}", e);
+                    eprintln!("Error reading input: {e}");
                     break;
                 }
             }
@@ -103,9 +103,9 @@ fn send_command(addr: SocketAddr, command: &str) {
             stream.set_write_timeout(Some(Duration::from_secs(5))).ok();
 
             // Send command
-            let cmd = format!("{}\n", command);
+            let cmd = format!("{command}\n");
             if let Err(e) = stream.write_all(cmd.as_bytes()) {
-                eprintln!("Error sending command: {}", e);
+                eprintln!("Error sending command: {e}");
                 return;
             }
 
@@ -116,22 +116,22 @@ fn send_command(addr: SocketAddr, command: &str) {
                     if response.is_empty() {
                         println!("(no response)");
                     } else {
-                        print!("{}", response);
+                        print!("{response}");
                     }
                 }
                 Err(e) => {
                     // Timeout is expected after receiving data
                     if !response.is_empty() {
-                        print!("{}", response);
+                        print!("{response}");
                     } else {
-                        eprintln!("Error reading response: {}", e);
+                        eprintln!("Error reading response: {e}");
                     }
                 }
             }
         }
         Err(e) => {
-            eprintln!("Could not connect to {}: {}", addr, e);
-            eprintln!("Is the server running with -T {}?", addr);
+            eprintln!("Could not connect to {addr}: {e}");
+            eprintln!("Is the server running with -T {addr}?");
             std::process::exit(1);
         }
     }

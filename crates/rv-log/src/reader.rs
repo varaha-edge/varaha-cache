@@ -237,7 +237,7 @@ mod tests {
             buf.write(LogRecord::new(
                 LogTag::Debug,
                 Vxid::new(i),
-                format!("msg-{}", i),
+                format!("msg-{i}"),
             ));
         }
         let reader = LogReader::new(Arc::clone(&buf));

@@ -281,11 +281,11 @@ mod tests {
         // Both waiters should receive Ready.
         match rx1.recv().await {
             Ok(CoalesceResult::Ready) => {}
-            other => panic!("expected Ready, got {:?}", other),
+            other => panic!("expected Ready, got {other:?}"),
         }
         match rx2.recv().await {
             Ok(CoalesceResult::Ready) => {}
-            other => panic!("expected Ready, got {:?}", other),
+            other => panic!("expected Ready, got {other:?}"),
         }
 
         // Entry should be removed.
@@ -316,7 +316,7 @@ mod tests {
             Ok(CoalesceResult::Failed(msg)) => {
                 assert_eq!(msg, "backend timeout");
             }
-            other => panic!("expected Failed, got {:?}", other),
+            other => panic!("expected Failed, got {other:?}"),
         }
 
         assert_eq!(mgr.inflight_count(), 0);
@@ -368,7 +368,7 @@ mod tests {
         // The receiver should get a closed error.
         match rx.recv().await {
             Err(broadcast::error::RecvError::Closed) => {} // expected
-            other => panic!("expected Closed error, got {:?}", other),
+            other => panic!("expected Closed error, got {other:?}"),
         }
     }
 

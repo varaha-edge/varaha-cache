@@ -68,7 +68,7 @@ pub async fn send_backend_request(
 
     // Write Host header if not present
     if request.get_header("Host").is_none() {
-        let host = format!("Host: {}\r\n", addr);
+        let host = format!("Host: {addr}\r\n");
         stream
             .write_all(host.as_bytes())
             .await

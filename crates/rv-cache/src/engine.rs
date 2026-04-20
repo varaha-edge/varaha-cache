@@ -459,7 +459,7 @@ mod tests {
         let engine = make_engine();
         match engine.lookup(&test_digest(99), None) {
             CacheLookupResult::Miss => {}
-            other => panic!("expected Miss, got {:?}", other),
+            other => panic!("expected Miss, got {other:?}"),
         }
         assert_eq!(engine.stats().cache_miss, 1);
     }
@@ -490,7 +490,7 @@ mod tests {
 
         match engine.evaluate(&oc) {
             CacheLookupResult::Hit(_) => {}
-            other => panic!("expected Hit, got {:?}", other),
+            other => panic!("expected Hit, got {other:?}"),
         }
         assert_eq!(engine.stats().cache_hit, 1);
     }
@@ -511,7 +511,7 @@ mod tests {
         // Lookup without request headers
         match engine.lookup(&digest, None) {
             CacheLookupResult::Hit(_) => {}
-            other => panic!("expected Hit, got {:?}", other),
+            other => panic!("expected Hit, got {other:?}"),
         }
 
         // Lookup with request headers -- no Vary data on the object, so it
@@ -520,7 +520,7 @@ mod tests {
         req.set("Accept-Encoding", "br");
         match engine.lookup(&digest, Some(&req)) {
             CacheLookupResult::Hit(_) => {}
-            other => panic!("expected Hit, got {:?}", other),
+            other => panic!("expected Hit, got {other:?}"),
         }
     }
 
@@ -565,7 +565,7 @@ mod tests {
                 let body = oc.get_body().expect("body should exist");
                 assert_eq!(&body[..], b"gzip-compressed body");
             }
-            other => panic!("expected Hit for gzip, got {:?}", other),
+            other => panic!("expected Hit for gzip, got {other:?}"),
         }
 
         // Lookup with br request -- must return the brotli variant
@@ -574,7 +574,7 @@ mod tests {
                 let body = oc.get_body().expect("body should exist");
                 assert_eq!(&body[..], b"brotli-compressed body");
             }
-            other => panic!("expected Hit for br, got {:?}", other),
+            other => panic!("expected Hit for br, got {other:?}"),
         }
 
         // Lookup with a completely different Accept-Encoding -- miss
@@ -582,7 +582,7 @@ mod tests {
         deflate_req.set("Accept-Encoding", "deflate");
         match engine.lookup(&digest, Some(&deflate_req)) {
             CacheLookupResult::Miss => {}
-            other => panic!("expected Miss for deflate, got {:?}", other),
+            other => panic!("expected Miss for deflate, got {other:?}"),
         }
     }
 
@@ -609,7 +609,7 @@ mod tests {
         some_req.set("Accept-Encoding", "gzip");
         match engine.lookup(&digest, Some(&some_req)) {
             CacheLookupResult::Miss => {}
-            other => panic!("expected Miss for Vary:*, got {:?}", other),
+            other => panic!("expected Miss for Vary:*, got {other:?}"),
         }
 
         // Even without headers it is a miss when Vary: * is present, because
@@ -617,7 +617,7 @@ mod tests {
         // But with an empty HeaderMap the Vary:* marker rejects the match.
         match engine.lookup(&digest, Some(&HeaderMap::new())) {
             CacheLookupResult::Miss => {}
-            other => panic!("expected Miss for Vary:* (empty headers), got {:?}", other),
+            other => panic!("expected Miss for Vary:* (empty headers), got {other:?}"),
         }
     }
 
@@ -647,7 +647,7 @@ mod tests {
                 let body = oc.get_body().expect("body should exist");
                 assert_eq!(&body[..], b"first variant");
             }
-            other => panic!("expected Hit (backward compat), got {:?}", other),
+            other => panic!("expected Hit (backward compat), got {other:?}"),
         }
     }
 
@@ -780,21 +780,21 @@ mod tests {
         // digest 1 should be gone
         match engine.lookup(&test_digest(1), None) {
             CacheLookupResult::Miss => {}
-            other => panic!("expected Miss after LRU eviction, got {:?}", other),
+            other => panic!("expected Miss after LRU eviction, got {other:?}"),
         }
 
         // digests 2, 3, 4 should still be present
         match engine.lookup(&test_digest(2), None) {
             CacheLookupResult::Hit(_) => {}
-            other => panic!("expected Hit for digest 2, got {:?}", other),
+            other => panic!("expected Hit for digest 2, got {other:?}"),
         }
         match engine.lookup(&test_digest(3), None) {
             CacheLookupResult::Hit(_) => {}
-            other => panic!("expected Hit for digest 3, got {:?}", other),
+            other => panic!("expected Hit for digest 3, got {other:?}"),
         }
         match engine.lookup(&test_digest(4), None) {
             CacheLookupResult::Hit(_) => {}
-            other => panic!("expected Hit for digest 4, got {:?}", other),
+            other => panic!("expected Hit for digest 4, got {other:?}"),
         }
     }
 
@@ -816,7 +816,7 @@ mod tests {
         // Touch digest 1 by looking it up (moves to back of LRU)
         match engine.lookup(&test_digest(1), None) {
             CacheLookupResult::Hit(_) => {}
-            other => panic!("expected Hit, got {:?}", other),
+            other => panic!("expected Hit, got {other:?}"),
         }
 
         // Insert a 4th object -- should evict digest 2 (now the oldest)
@@ -827,13 +827,13 @@ mod tests {
         // digest 1 should still be present (it was touched)
         match engine.lookup(&test_digest(1), None) {
             CacheLookupResult::Hit(_) => {}
-            other => panic!("expected Hit for touched digest 1, got {:?}", other),
+            other => panic!("expected Hit for touched digest 1, got {other:?}"),
         }
 
         // digest 2 should be evicted
         match engine.lookup(&test_digest(2), None) {
             CacheLookupResult::Miss => {}
-            other => panic!("expected Miss for evicted digest 2, got {:?}", other),
+            other => panic!("expected Miss for evicted digest 2, got {other:?}"),
         }
     }
 
@@ -854,7 +854,7 @@ mod tests {
 
         match engine.lookup(&digest, None) {
             CacheLookupResult::Miss => {}
-            other => panic!("expected Miss after remove, got {:?}", other),
+            other => panic!("expected Miss after remove, got {other:?}"),
         }
     }
 

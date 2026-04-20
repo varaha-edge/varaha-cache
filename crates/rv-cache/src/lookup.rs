@@ -81,7 +81,7 @@ mod tests {
         let now = VtimReal::from_secs(1050.0); // Within TTL
         match evaluate_object(&oc, now) {
             CacheLookupResult::Hit(_) => {}
-            other => panic!("expected Hit, got {:?}", other),
+            other => panic!("expected Hit, got {other:?}"),
         }
     }
 
@@ -96,7 +96,7 @@ mod tests {
         let now = VtimReal::from_secs(1070.0); // Past TTL, within grace
         match evaluate_object(&oc, now) {
             CacheLookupResult::Grace(_) => {}
-            other => panic!("expected Grace, got {:?}", other),
+            other => panic!("expected Grace, got {other:?}"),
         }
     }
 
@@ -111,7 +111,7 @@ mod tests {
         let now = VtimReal::from_secs(1200.0); // Past TTL + grace
         match evaluate_object(&oc, now) {
             CacheLookupResult::Miss => {}
-            other => panic!("expected Miss, got {:?}", other),
+            other => panic!("expected Miss, got {other:?}"),
         }
     }
 
@@ -123,7 +123,7 @@ mod tests {
 
         match evaluate_object(&oc, VtimReal::now()) {
             CacheLookupResult::Busy => {}
-            other => panic!("expected Busy, got {:?}", other),
+            other => panic!("expected Busy, got {other:?}"),
         }
     }
 
@@ -135,7 +135,7 @@ mod tests {
 
         match evaluate_object(&oc, VtimReal::now()) {
             CacheLookupResult::HitForPass => {}
-            other => panic!("expected HitForPass, got {:?}", other),
+            other => panic!("expected HitForPass, got {other:?}"),
         }
     }
 }

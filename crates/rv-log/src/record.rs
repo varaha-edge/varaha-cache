@@ -83,7 +83,7 @@ mod tests {
     fn display_format() {
         let ts = VtimReal::from_secs(1_700_000_000.123456);
         let rec = LogRecord::with_timestamp(LogTag::ReqURL, Vxid::new(100), ts, "/foo".into());
-        let formatted = format!("{}", rec);
+        let formatted = format!("{rec}");
         assert!(formatted.contains("ReqURL"));
         assert!(formatted.contains("100"));
         assert!(formatted.contains("/foo"));

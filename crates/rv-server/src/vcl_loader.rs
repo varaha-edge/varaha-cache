@@ -11,9 +11,9 @@ pub fn load_vcl(path: &Path) -> Result<VclProgram> {
     let source = std::fs::read_to_string(path)
         .with_context(|| format!("failed to read VCL file: {}", path.display()))?;
 
-    let tokens = Lexer::tokenize(&source).map_err(|e| anyhow::anyhow!("VCL lexer error: {}", e))?;
+    let tokens = Lexer::tokenize(&source).map_err(|e| anyhow::anyhow!("VCL lexer error: {e}"))?;
 
-    let program = Parser::parse(&tokens).map_err(|e| anyhow::anyhow!("VCL parser error: {}", e))?;
+    let program = Parser::parse(&tokens).map_err(|e| anyhow::anyhow!("VCL parser error: {e}"))?;
 
     info!(
         path = %path.display(),
@@ -35,7 +35,7 @@ pub fn extract_backends(program: &VclProgram) -> Vec<(String, SocketAddr)> {
             eval_string_property(&decl.properties, "port").unwrap_or_else(|| "80".to_string());
 
         if let Some(host) = host {
-            let addr_str = format!("{}:{}", host, port);
+            let addr_str = format!("{host}:{port}");
             if let Ok(addr) = addr_str.parse::<SocketAddr>() {
                 info!(name = %decl.name, addr = %addr, "found backend in VCL");
                 backends.push((decl.name.clone(), addr));

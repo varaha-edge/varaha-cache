@@ -387,7 +387,7 @@ fn handle_log_stream(ctx: &AdminContext, tags_filter: Option<&str>) -> CliRespon
                 continue;
             }
         }
-        lines.push(format!("{}", rec));
+        lines.push(format!("{rec}"));
     }
 
     if lines.is_empty() {

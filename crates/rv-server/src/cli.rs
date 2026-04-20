@@ -99,7 +99,7 @@ pub fn parse_args() -> CliArgs {
                 std::process::exit(0);
             }
             arg => {
-                eprintln!("Unknown argument: {}", arg);
+                eprintln!("Unknown argument: {arg}");
                 print_usage();
                 std::process::exit(1);
             }

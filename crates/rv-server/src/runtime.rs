@@ -956,7 +956,7 @@ async fn state_fetch(
             rv_log::rv_log!(log, LogTag::FetchError, ctx.vxid, "{}", e);
             ctx.vcl_action = Some(VclAction::Synth);
             ctx.synth_status = Some(HttpStatus::BAD_GATEWAY);
-            ctx.synth_body = Some(format!("Backend fetch failed: {}", e).into_bytes());
+            ctx.synth_body = Some(format!("Backend fetch failed: {e}").into_bytes());
         }
     }
 }
@@ -1185,7 +1185,7 @@ fn state_deliver(
                     response.reason = HttpStatus::PARTIAL_CONTENT.reason().to_string();
                     response.set_header(
                         "Content-Range",
-                        format!("bytes {}-{}/{}", start, end, content_length),
+                        format!("bytes {start}-{end}/{content_length}"),
                     );
                     let sliced = body[start..=end].to_vec();
                     response.set_header("Content-Length", sliced.len().to_string());
@@ -1199,7 +1199,7 @@ fn state_deliver(
                     // Range is not satisfiable
                     response.status = HttpStatus::RANGE_NOT_SATISFIABLE;
                     response.reason = HttpStatus::RANGE_NOT_SATISFIABLE.reason().to_string();
-                    response.set_header("Content-Range", format!("bytes */{}", content_length));
+                    response.set_header("Content-Range", format!("bytes */{content_length}"));
                     response.unset_header("Content-Length");
                     resp_body = None;
                 }
@@ -1423,7 +1423,7 @@ fn parse_storage_spec(spec: &str) -> Result<Arc<dyn Stevedore>> {
             )))
         }
         _ => {
-            anyhow::bail!("unsupported storage backend: {}", backend_type);
+            anyhow::bail!("unsupported storage backend: {backend_type}");
         }
     }
 }

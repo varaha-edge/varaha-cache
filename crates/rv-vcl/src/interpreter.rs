@@ -944,7 +944,7 @@ sub vcl_recv {
 
         match interp.exec_subroutine("vcl_recv", &mut ctx) {
             VclExecResult::Action(action) => assert_eq!(action, VclAction::Pass),
-            other => panic!("expected Action(Pass), got {:?}", other),
+            other => panic!("expected Action(Pass), got {other:?}"),
         }
     }
 
@@ -971,7 +971,7 @@ sub vcl_recv {
 
         match interp.exec_subroutine("vcl_recv", &mut ctx) {
             VclExecResult::Action(action) => assert_eq!(action, VclAction::Synth),
-            other => panic!("expected Action(Synth), got {:?}", other),
+            other => panic!("expected Action(Synth), got {other:?}"),
         }
 
         // Test non-matching path
@@ -983,7 +983,7 @@ sub vcl_recv {
 
         match interp.exec_subroutine("vcl_recv", &mut ctx) {
             VclExecResult::Action(action) => assert_eq!(action, VclAction::Hash),
-            other => panic!("expected Action(Hash), got {:?}", other),
+            other => panic!("expected Action(Hash), got {other:?}"),
         }
     }
 
@@ -1052,7 +1052,7 @@ sub vcl_recv {
 
         match interp.exec_subroutine("vcl_recv", &mut ctx) {
             VclExecResult::Action(action) => assert_eq!(action, VclAction::Pass),
-            other => panic!("expected Action(Pass), got {:?}", other),
+            other => panic!("expected Action(Pass), got {other:?}"),
         }
     }
 
@@ -1069,7 +1069,7 @@ sub vcl_recv {
 
         match interp.exec_subroutine("vcl_miss", &mut ctx) {
             VclExecResult::Fallthrough => {}
-            other => panic!("expected Fallthrough, got {:?}", other),
+            other => panic!("expected Fallthrough, got {other:?}"),
         }
     }
 
@@ -1127,7 +1127,7 @@ sub vcl_recv {
                 assert_eq!(ctx.synth_status, Some(403));
                 assert_eq!(ctx.synth_body.as_deref(), Some("Forbidden"));
             }
-            other => panic!("expected Action(Synth), got {:?}", other),
+            other => panic!("expected Action(Synth), got {other:?}"),
         }
     }
 

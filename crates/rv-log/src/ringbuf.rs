@@ -213,7 +213,7 @@ mod tests {
     fn read_from_partial() {
         let buf = RingBuffer::new(10);
         for i in 0..5 {
-            buf.write(make_record(i, &format!("msg-{}", i)));
+            buf.write(make_record(i, &format!("msg-{i}")));
         }
         // Read from position 3 -> should get records 3 and 4.
         let (records, pos) = buf.read_from(3);

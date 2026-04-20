@@ -77,7 +77,7 @@ pub fn build_tls_acceptor(config: &TlsConfig) -> Result<TlsAcceptor, TransportEr
     let mut server_config = ServerConfig::builder()
         .with_no_client_auth()
         .with_single_cert(certs, key)
-        .map_err(|e| TransportError::Tls(format!("failed to build ServerConfig: {}", e)))?;
+        .map_err(|e| TransportError::Tls(format!("failed to build ServerConfig: {e}")))?;
 
     server_config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
 
@@ -101,8 +101,7 @@ mod tests {
                 let err = e.to_string();
                 assert!(
                     err.contains("failed to open cert file"),
-                    "unexpected error: {}",
-                    err
+                    "unexpected error: {err}"
                 );
             }
             Ok(_) => panic!("expected error, got Ok"),
@@ -130,8 +129,7 @@ mod tests {
                 assert!(
                     err.contains("no certificates found")
                         || err.contains("failed to open key file"),
-                    "unexpected error: {}",
-                    err
+                    "unexpected error: {err}"
                 );
             }
             Ok(_) => panic!("expected error, got Ok"),
@@ -160,8 +158,7 @@ mod tests {
                 let err = e.to_string();
                 assert!(
                     err.contains("no certificates found"),
-                    "unexpected error: {}",
-                    err
+                    "unexpected error: {err}"
                 );
             }
             Ok(_) => panic!("expected error, got Ok"),
@@ -184,8 +181,7 @@ mod tests {
         let err = result.unwrap_err().to_string();
         assert!(
             err.contains("no private key found"),
-            "unexpected error: {}",
-            err
+            "unexpected error: {err}"
         );
 
         let _ = std::fs::remove_dir_all(&dir);
@@ -197,7 +193,7 @@ mod tests {
             cert_path: PathBuf::from("/etc/ssl/cert.pem"),
             key_path: PathBuf::from("/etc/ssl/key.pem"),
         };
-        let debug = format!("{:?}", config);
+        let debug = format!("{config:?}");
         assert!(debug.contains("cert.pem"));
         assert!(debug.contains("key.pem"));
     }
@@ -250,12 +246,12 @@ mod tests {
     fn pem_encode(label: &str, der: &[u8]) -> String {
         use base64::Engine;
         let b64 = base64::engine::general_purpose::STANDARD.encode(der);
-        let mut pem = format!("-----BEGIN {}-----\n", label);
+        let mut pem = format!("-----BEGIN {label}-----\n");
         for chunk in b64.as_bytes().chunks(64) {
             pem.push_str(std::str::from_utf8(chunk).unwrap());
             pem.push('\n');
         }
-        pem.push_str(&format!("-----END {}-----\n", label));
+        pem.push_str(&format!("-----END {label}-----\n"));
         pem
     }
 
