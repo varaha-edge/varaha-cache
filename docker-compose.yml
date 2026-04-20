@@ -1,6 +1,6 @@
 services:
   varaha-cache:
-    image: registry.intra.varaha.io/prioarc-apps/varaha-cache:latest
+    image: registry.intra.varaha.io/varaha-internal/varaha-cache:latest
     platform: linux/amd64
     ports:
       - "6081:6081"   # HTTP client-facing

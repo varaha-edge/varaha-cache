@@ -7,12 +7,12 @@ metadata:
 
 secrets:
   - name: kaniko_username
-    key: prioarc-apps/varaha-cache/harbor_username
+    key: varaha-internal/varaha-cache/harbor_username
     engine: native
     type: repo
 
   - name: kaniko_password
-    key: prioarc-apps/varaha-cache/harbor_password
+    key: varaha-internal/varaha-cache/harbor_password
     engine: native
     type: repo
 
@@ -57,7 +57,7 @@ steps:
   #     event: [push]
   #   parameters:
   #     registry: registry.intra.varaha.io
-  #     repo: registry.intra.varaha.io/prioarc-apps/varaha-cache
+  #     repo: registry.intra.varaha.io/varaha-internal/varaha-cache
   #     tags:
   #       - latest
   #       - "build-${VELA_BUILD_NUMBER}"
